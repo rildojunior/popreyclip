@@ -1,0 +1,116 @@
+# Builds, tests and publishes a new PoPreyClip release on every push to main.
+# The installed apps see the new release and offer the update.
+#
+# - Commits that only touch documentation or logo files do not create a release.
+# - Add [skip ci] to a commit message to push without releasing.
+# - The version is the last release + 1 on the patch number (1.0.1 -> 1.0.2).
+#   To jump to 1.1.0 or 2.0.0, set <Version> in src/PoPreyClip.App/PoPreyClip.App.csproj to that number.
+# - "Run workflow" on the Actions tab can also build a test copy without publishing (dry run).
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "assets/logo/**"
+      - "assets/icon.svg"
+      - "LICENSE"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Só compilar e testar, sem publicar a versão"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar o .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Rodar os testes
+        run: dotnet test PoPreyClip.slnx -c Release -nologo
+
+      - name: Calcular a versão
+        id: version
+        shell: pwsh
+        run: |
+          $project = Get-Content src/PoPreyClip.App/PoPreyClip.App.csproj -Raw
+          $base = [Version]([regex]::Match($project, '<Version>([^<]+)</Version>').Groups[1].Value)
+          $latestTag = gh release view --json tagName --jq .tagName 2>$null
+          if ($LASTEXITCODE -ne 0 -or -not $latestTag) {
+            $next = $base
+            $latestTag = ""
+          } else {
+            $latest = [Version]$latestTag.TrimStart('v')
+            $next = [Version]::new($latest.Major, $latest.Minor, $latest.Build + 1)
+            if ($base -gt $next) { $next = $base }
+          }
+          $version = "$($next.Major).$($next.Minor).$($next.Build)"
+          Write-Host "Última versão: '$latestTag'  ->  nova versão: $version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "previous=$latestTag" >> $env:GITHUB_OUTPUT
+
+      - name: Gerar o PoPreyClip.exe
+        shell: pwsh
+        run: |
+          dotnet publish src/PoPreyClip.App -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none -p:Version=${{ steps.version.outputs.version }} -o artifacts/release -nologo
+          $hash = (Get-FileHash artifacts/release/PoPreyClip.exe -Algorithm SHA256).Hash
+          Set-Content artifacts/release/PoPreyClip.exe.sha256 "$hash  PoPreyClip.exe" -Encoding ascii
+          Get-Item artifacts/release/PoPreyClip.exe | Format-List Name, Length
+
+      - name: Guardar a cópia de teste
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        uses: actions/upload-artifact@v4
+        with:
+          name: PoPreyClip-${{ steps.version.outputs.version }}-teste
+          path: artifacts/release/
+
+      - name: Publicar a versão
+        if: github.event_name == 'push' || !inputs.dry_run
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $previous = "${{ steps.version.outputs.previous }}"
+          $range = if ($previous) { "$previous..HEAD" } else { "HEAD" }
+          $changes = git log $range --no-merges --pretty=format:"- %s"
+          if (-not $changes) { $changes = "- Melhorias e correções." }
+          $notes = @"
+          ## PoPreyClip $version
+
+          ### O que mudou
+
+          $($changes -join "`n")
+
+          ### Como atualizar
+
+          Quem já tem o PoPreyClip recebe um aviso dentro do app: é só clicar em **Atualizar agora**.
+
+          Para instalar do zero, baixe o **PoPreyClip.exe** abaixo, em **Assets**, e siga o [README](https://github.com/${{ github.repository }}#-instalação).
+          "@
+          $notes -replace '(?m)^          ', '' | Set-Content artifacts/notes.md -Encoding utf8
+          gh release create "v$version" artifacts/release/PoPreyClip.exe artifacts/release/PoPreyClip.exe.sha256 `
+            --title "PoPreyClip $version" --notes-file artifacts/notes.md --target ${{ github.sha }}

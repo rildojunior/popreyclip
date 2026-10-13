@@ -229,13 +229,20 @@ dotnet test PoPreyClip.slnx
 
 ### Lançar uma nova versão
 
-Com o [GitHub CLI](https://cli.github.com/) conectado (`gh auth login`), rode na pasta do projeto:
+As versões saem sozinhas. A cada `git push` no branch `main`, o [GitHub Actions](../../actions) faz o seguinte:
 
-```powershell
-.\lancar-versao.ps1 -Versao 1.0.2 -Notas "O que mudou nesta versão"
-```
+1. Compila o app e roda os testes. Se algum falhar, nada é publicado.
+2. Soma 1 ao número da última versão (por exemplo, 1.0.2 vira 1.0.3).
+3. Gera o `PoPreyClip.exe` e o arquivo de verificação `PoPreyClip.exe.sha256`.
+4. Publica a versão em **Releases**, com a lista de commits nas notas.
 
-O script roda os testes, atualiza o número da versão, faz o commit, gera o `PoPreyClip.exe` com o arquivo de verificação `PoPreyClip.exe.sha256` e publica tudo em **Releases**. Quem já usa o app recebe o aviso de atualização.
+Quem já usa o app recebe o aviso de atualização.
+
+- **Commits só de documentação** (arquivos `.md`, pasta `docs/`, logo) não geram versão.
+- **Para enviar sem gerar versão**, escreva `[skip ci]` na mensagem do commit.
+- **Para pular para 1.1.0 ou 2.0.0**, mude `<Version>` em `src/PoPreyClip.App/PoPreyClip.App.csproj` para o número desejado.
+
+O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ### Estrutura
 
