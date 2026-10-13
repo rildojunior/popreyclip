@@ -55,6 +55,12 @@ public sealed class GameDetector(Func<AppConfig> config)
             }
         }
 
+        // Games and watched apps from the list count as soon as they are running, even in the background.
+        if (next is null && cfg.Games.Count > 0)
+        {
+            next = FindWatchedProcess(cfg, Win32.GetProcesses());
+        }
+
         DetectedGame? previous;
         lock (_gate)
         {
@@ -75,6 +81,20 @@ public sealed class GameDetector(Func<AppConfig> config)
 
             GameChanged?.Invoke(next);
         }
+    }
+
+    /// <summary>First running process whose executable is in the games / watched apps list (its root process).</summary>
+    internal static DetectedGame? FindWatchedProcess(AppConfig cfg, IReadOnlyList<Win32.ProcessInfo> processes)
+    {
+        foreach (var (exe, name) in cfg.Games)
+        {
+            if (Win32.FindRootProcess(processes, exe) is { } pid && pid != Environment.ProcessId)
+            {
+                return new DetectedGame(pid, exe, name);
+            }
+        }
+
+        return null;
     }
 
     private static DetectedGame? TryDetect(AppConfig cfg, IntPtr hwnd, int pid)

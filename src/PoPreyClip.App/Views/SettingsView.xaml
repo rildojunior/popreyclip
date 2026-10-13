@@ -273,9 +273,18 @@
                         <TextBlock Text="Comportamento" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <DockPanel Margin="0,16,0,0">
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoRecordGames}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Gravar só quando um jogo estiver aberto" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Fora do jogo o app fica em espera, sem gastar recursos. A gravação liga sozinha quando um jogo ou app vigiado abrir e desliga quando ele fechar." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel IsEnabled="{Binding CanChooseStartOnLaunch}">
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartRecordingOnLaunch}" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Começar a gravar ao abrir" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Só vale com a opção acima desligada." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />
@@ -294,6 +303,67 @@
                             <TextBlock Text="Qualquer programa em tela cheia ou janela sem borda conta como jogo." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Watched games and apps -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" DataContext="{Binding Watched}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Jogos e apps vigiados" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Programas desta lista contam como jogo assim que abrem, mesmo fora da tela cheia. Use para jogos que não são detectados sozinhos ou para qualquer app que você queira gravar."
+                               Style="{StaticResource HintText}" Margin="0,6,0,14" />
+
+                    <!-- Add from an open window -->
+                    <TextBlock Text="Adicionar uma janela aberta" Style="{StaticResource LabelText}" />
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox ItemsSource="{Binding OpenWindows}" SelectedItem="{Binding SelectedWindow}" DisplayMemberPath="Display" />
+                        <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xE72C;" Margin="8,0,0,0" Command="{Binding RefreshWindowsCommand}" ToolTip="Atualizar a lista de janelas" />
+                    </Grid>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Nome do jogo" Style="{StaticResource HintText}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <TextBox Grid.Column="1" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Também é o nome da pasta dos clipes" />
+                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Command="{Binding AddCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Vigiar" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="Carregando janelas..." Style="{StaticResource HintText}" Margin="0,6,0,0"
+                               Visibility="{Binding Loading, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- Current list -->
+                    <Border Style="{StaticResource Divider}" />
+                    <TextBlock Text="Nenhum programa vigiado ainda." Style="{StaticResource HintText}"
+                               Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE74D;" Command="{Binding RemoveCommand}"
+                                                ToolTip="Parar de vigiar" Width="30" Height="30" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding ExeName}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" FontFamily="Consolas" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
 

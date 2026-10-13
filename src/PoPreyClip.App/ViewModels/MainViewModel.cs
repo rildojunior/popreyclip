@@ -107,6 +107,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(HotkeyHint));
             OnPropertyChanged(nameof(StatusDetail));
+            OnPropertyChanged(nameof(StatusTitle));
+            OnPropertyChanged(nameof(IsWaitingForGame));
         });
 
         HotkeyBox.CapturingChanged += capturing =>
@@ -254,6 +256,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _isRecording, value))
             {
                 OnPropertyChanged(nameof(StatusTitle));
+                OnPropertyChanged(nameof(IsWaitingForGame));
                 OnPropertyChanged(nameof(StatusDetail));
                 OnPropertyChanged(nameof(ToggleText));
                 CommandManager.InvalidateRequerySuggested();
@@ -275,11 +278,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string StatusTitle => IsBusy ? (IsRecording ? "Parando..." : "Iniciando...") : IsRecording ? "Gravando" : "Parado";
+    public string StatusTitle => IsBusy ? (IsRecording ? "Parando..." : "Iniciando...") : IsRecording ? "Gravando" : IsWaitingForGame ? "Em espera" : "Parado";
+
+    /// <summary>Idle mode with no recording: waiting for a game to open.</summary>
+    public bool IsWaitingForGame => !IsRecording && _store.Current.AutoRecordGames;
 
     public string StatusDetail => IsRecording
         ? $"Os últimos {Settings.ClipSecondsText} ficam guardados. Pressione {_store.Current.Hotkey} para salvar."
-        : "Inicie a gravação para poder salvar clipes.";
+        : IsWaitingForGame
+            ? "A gravação liga sozinha quando um jogo abrir e desliga quando ele fechar."
+            : "Inicie a gravação para poder salvar clipes.";
 
     public string ToggleText => IsRecording ? "Parar gravação" : "Iniciar gravação";
 
@@ -350,7 +358,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void StartOnLaunch()
     {
-        if (_store.Current.StartRecordingOnLaunch)
+        if (_store.Current.StartRecordingOnLaunch && !_store.Current.AutoRecordGames)
         {
             ToggleRecordingCommand.Execute(null);
         }

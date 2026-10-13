@@ -29,6 +29,7 @@ public sealed class SettingsViewModel : ObservableObject
     public SettingsViewModel(ConfigStore store, Func<string, string, string?> applyHotkey, ClipSoundPlayer sounds)
     {
         _sounds = sounds;
+        Watched = new WatchedGamesViewModel(store);
         PreviewSoundCommand = new RelayCommand(() => _sounds.Play(C.ClipSound, C.ClipSoundFile, C.ClipSoundVolume));
         BrowseSoundCommand = new RelayCommand(BrowseSound);
         _store = store;
@@ -314,6 +315,24 @@ public sealed class SettingsViewModel : ObservableObject
         get => C.StartRecordingOnLaunch;
         set => _store.Update(c => c.StartRecordingOnLaunch = value);
     }
+
+    /// <summary>Idle mode: record only while a game or watched app is open.</summary>
+    public bool AutoRecordGames
+    {
+        get => C.AutoRecordGames;
+        set
+        {
+            _store.Update(c => c.AutoRecordGames = value);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanChooseStartOnLaunch));
+        }
+    }
+
+    /// <summary>"Começar a gravar ao abrir" only matters when idle mode is off.</summary>
+    public bool CanChooseStartOnLaunch => !C.AutoRecordGames;
+
+    /// <summary>Games and watched apps list (shared card in the settings page).</summary>
+    public WatchedGamesViewModel Watched { get; }
 
     public bool MinimizeToTray
     {

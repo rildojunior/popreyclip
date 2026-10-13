@@ -23,6 +23,12 @@ public sealed class AppConfig
     /// <summary>Global hotkey that saves a screenshot. Empty disables it.</summary>
     public string ScreenshotHotkey { get; set; } = "F12";
 
+    /// <summary>
+    /// Idle mode: recording turns on by itself when a game (or watched app) opens and off when it closes, so the
+    /// app uses almost nothing while you are not playing. When false, <see cref="StartRecordingOnLaunch"/> applies.
+    /// </summary>
+    public bool AutoRecordGames { get; set; } = true;
+
     /// <summary>Desktop app: start recording as soon as the app opens.</summary>
     public bool StartRecordingOnLaunch { get; set; } = true;
 

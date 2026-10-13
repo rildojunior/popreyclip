@@ -43,7 +43,7 @@ internal sealed class TrayIcon : IDisposable
         {
             if (e.PropertyName == nameof(MainViewModel.IsRecording))
             {
-                _icon.Text = viewModel.IsRecording ? "PoPreyClip · gravando" : "PoPreyClip · parado";
+                _icon.Text = viewModel.IsRecording ? "PoPreyClip · gravando" : viewModel.IsWaitingForGame ? "PoPreyClip · em espera" : "PoPreyClip · parado";
             }
         };
         viewModel.Updates.UpdateFound += update =>

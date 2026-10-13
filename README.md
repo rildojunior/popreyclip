@@ -32,7 +32,9 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 
 ## ✨ Funcionalidades
 
-- 🎬 **Replay instantâneo:** o PoPreyClip grava o tempo todo em segundo plano e, quando você aperta **F8**, salva os últimos 30 segundos (a duração é configurável).
+- 🎬 **Replay instantâneo:** enquanto você joga, o PoPreyClip grava em segundo plano e, quando você aperta **F8**, salva os últimos 30 segundos (a duração é configurável).
+- 💤 **Modo espera:** sem jogo aberto, o app fica parado e não gasta recursos. A gravação liga sozinha quando o jogo abre e desliga quando ele fecha.
+- 👀 **Jogos e apps vigiados:** escolha qualquer janela (um jogo que não foi detectado, um emulador, um programa) para ser tratada como jogo assim que abrir.
 - 📁 **Uma pasta por jogo:** o jogo aberto é detectado sozinho e cada clipe vai para `Clips\<Nome do Jogo>\`.
 - 🎧 **Áudio separado por aplicativo:** jogo, microfone, Discord e qualquer outro programa viram faixas separadas no clipe, cada uma com seu volume.
 - 🎚️ **Mixer de áudio:** volume de 0 a 200%, reforço de até +30 dB para microfones baixos e um limitador que evita distorção.
@@ -88,7 +90,7 @@ Não precisa instalar mais nada: o `.exe` já traz tudo o que o app usa, inclusi
 
 ### Passo 3: abrir
 
-Dê dois cliques no `PoPreyClip.exe`. A gravação começa sozinha.
+Dê dois cliques no `PoPreyClip.exe`. O app abre em espera e começa a gravar sozinho quando você abrir um jogo.
 
 > **"O Windows protegeu o computador"?** O aviso aparece porque o app não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**. O código é aberto e está todo neste repositório.
 
@@ -98,9 +100,12 @@ Dica: clique com o botão direito no `.exe`, escolha **Enviar para → Área de 
 
 ### Salvar um clipe
 
-1. Abra o PoPreyClip. A bolinha vermelha na barra lateral indica que ele está gravando.
-2. Jogue normalmente.
+1. Abra o PoPreyClip. Ele fica **em espera** até um jogo abrir.
+2. Abra o jogo. A gravação liga sozinha e a bolinha vermelha na barra lateral acende.
 3. Aconteceu algo bom? Aperte **F8**. Os últimos 30 segundos são salvos e um som confirma.
+4. Ao fechar o jogo, a gravação desliga sozinha.
+
+Prefere gravar o tempo todo? Desligue **Gravar só quando um jogo estiver aberto** em **Configurações → Comportamento**. Os botões **Iniciar gravação** e **Parar gravação** também funcionam a qualquer momento.
 
 O clipe vai para:
 
@@ -180,7 +185,7 @@ Alguns jogos em **tela cheia exclusiva** bloqueiam a captura. Mude o modo de ví
 <details>
 <summary><b>O jogo não foi detectado e o clipe foi para "Unknown Game"</b></summary>
 
-O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Deixe o jogo em primeiro plano por alguns segundos antes de salvar o clipe.
+O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo não for detectado, adicione-o em **Configurações → Jogos e apps vigiados**: com o jogo aberto, escolha a janela dele na lista, confira o nome e clique em **Vigiar**. Daí em diante ele é reconhecido assim que abrir.
 </details>
 
 <details>
