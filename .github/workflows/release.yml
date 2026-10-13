@@ -96,7 +96,8 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $previous = "${{ steps.version.outputs.previous }}"
           $range = if ($previous) { "$previous..HEAD" } else { "HEAD" }
-          $changes = git log $range --no-merges --pretty=format:"- %s"
+          # Commits marked [skip ci] (internal changes) stay out of the notes friends read.
+          $changes = git log $range --no-merges --pretty=format:"- %s" | Where-Object { -not $_.Contains('[skip ci]') }
           if (-not $changes) { $changes = "- Melhorias e correções." }
           $notes = @"
           ## PoPreyClip $version
