@@ -413,4 +413,7 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public string ConfigPath => _store.FilePath;
+
+    /// <summary>Update checks shown in the "Atualizações" card (shared with the banner).</summary>
+    public UpdatesViewModel? Updates { get; init; }
 }

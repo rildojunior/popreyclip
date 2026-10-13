@@ -297,6 +297,37 @@
                 </StackPanel>
             </Border>
 
+            <!-- Updates -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Atualizações" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <DockPanel Margin="0,14,0,0">
+                        <Button DockPanel.Dock="Right" Command="{Binding Updates.CheckNowCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Procurar agora" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="{Binding Updates.CurrentVersionText}" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="{Binding Updates.Status}" Style="{StaticResource HintText}"
+                                       Visibility="{Binding Updates.Status, Converter={StaticResource NotEmptyToVisibility}}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Updates.AutoCheck}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Procurar atualizações automaticamente" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Ao abrir e a cada 6 horas. Quando sair uma versão nova, aparece um aviso para atualizar com um clique." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Advanced -->
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <DockPanel>

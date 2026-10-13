@@ -1,0 +1,211 @@
+using System.Diagnostics;
+using System.Net.Http;
+using System.Windows.Input;
+using System.Windows.Threading;
+using PoPreyClip.Config;
+using PoPreyClip.Updates;
+
+namespace PoPreyClip.App.ViewModels;
+
+/// <summary>Checks GitHub for new versions, shows the banner, downloads and installs updates.</summary>
+public sealed class UpdatesViewModel : ObservableObject
+{
+    private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
+
+    private readonly ConfigStore _store;
+    private readonly Action _exitForUpdate;
+    private readonly UpdateService _service = new();
+    private readonly DispatcherTimer _timer;
+    private UpdateInfo? _available;
+    private bool _dismissed;
+    private bool _isBusy;
+    private double _progress;
+    private string? _status;
+
+    public UpdatesViewModel(ConfigStore store, Action exitForUpdate)
+    {
+        _store = store;
+        _exitForUpdate = exitForUpdate;
+        CheckNowCommand = new AsyncRelayCommand(() => CheckAsync(manual: true), () => !IsBusy);
+        InstallCommand = new AsyncRelayCommand(InstallAsync, () => Available is not null && !IsBusy);
+        OpenReleasePageCommand = new RelayCommand(() => OpenUrl(Available?.PageUrl ?? UpdateService.ReleasesPage));
+        DismissCommand = new RelayCommand(() =>
+        {
+            _dismissed = true;
+            OnPropertyChanged(nameof(IsBannerVisible));
+        });
+        _timer = new DispatcherTimer(FirstCheckDelay, DispatcherPriority.Background, async (_, _) =>
+        {
+            _timer!.Interval = CheckInterval;
+            if (_store.Current.AutoCheckUpdates)
+            {
+                await CheckAsync(manual: false);
+            }
+        }, Dispatcher.CurrentDispatcher);
+    }
+
+    /// <summary>Raised when a newer version is found, so the tray can show a notification.</summary>
+    public event Action<UpdateInfo>? UpdateFound;
+
+    public ICommand CheckNowCommand { get; }
+
+    public ICommand InstallCommand { get; }
+
+    public ICommand OpenReleasePageCommand { get; }
+
+    public ICommand DismissCommand { get; }
+
+    public string CurrentVersionText => $"Versão {UpdateService.CurrentVersion.ToString(3)}";
+
+    public UpdateInfo? Available
+    {
+        get => _available;
+        private set
+        {
+            if (SetProperty(ref _available, value))
+            {
+                OnPropertyChanged(nameof(IsBannerVisible));
+                OnPropertyChanged(nameof(AvailableText));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public string AvailableText => Available is null ? "" : $"Nova versão {Available.Version.ToString(3)} disponível";
+
+    public bool IsBannerVisible => Available is not null && !_dismissed;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                OnPropertyChanged(nameof(InstallText));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    /// <summary>Download progress, 0 to 1.</summary>
+    public double Progress
+    {
+        get => _progress;
+        private set
+        {
+            if (SetProperty(ref _progress, value))
+            {
+                OnPropertyChanged(nameof(InstallText));
+            }
+        }
+    }
+
+    public string InstallText => IsBusy ? $"Baixando {Progress:P0}" : "Atualizar agora";
+
+    public string? Status
+    {
+        get => _status;
+        private set => SetProperty(ref _status, value);
+    }
+
+    public bool AutoCheck
+    {
+        get => _store.Current.AutoCheckUpdates;
+        set
+        {
+            _store.Update(c => c.AutoCheckUpdates = value);
+            OnPropertyChanged();
+        }
+    }
+
+    public void Start() => _timer.Start();
+
+    public async Task CheckAsync(bool manual)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        if (manual)
+        {
+            Status = "Procurando atualizações...";
+        }
+
+        try
+        {
+            var update = await _service.CheckAsync();
+            if (update is null)
+            {
+                Status = $"Você já está na versão mais nova ({UpdateService.CurrentVersion.ToString(3)}).";
+                return;
+            }
+
+            var isNew = Available?.Version != update.Version;
+            Available = update;
+            Status = $"Nova versão {update.Version.ToString(3)} disponível.";
+            if (manual)
+            {
+                _dismissed = false;
+                OnPropertyChanged(nameof(IsBannerVisible));
+            }
+
+            if (isNew)
+            {
+                Log.Info($"Nova versão disponível: {update.Version.ToString(3)} (atual {UpdateService.CurrentVersion.ToString(3)}).");
+                UpdateFound?.Invoke(update);
+            }
+
+            // Test hook: install without a click (used by the automated update test only).
+            if (Environment.GetEnvironmentVariable("POPREYCLIP_AUTO_INSTALL_UPDATE") == "1")
+            {
+                await InstallAsync();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or IOException or KeyNotFoundException or InvalidOperationException)
+        {
+            // Offline or GitHub unavailable: try again at the next interval; only tell the user when they asked.
+            Log.Debug($"Não foi possível verificar atualizações: {ex.Message}");
+            if (manual)
+            {
+                Status = "Não foi possível verificar agora. Confira sua conexão com a internet.";
+            }
+        }
+    }
+
+    private async Task InstallAsync()
+    {
+        if (Available is not { } update)
+        {
+            return;
+        }
+
+        if (!UpdateService.CanSelfUpdate)
+        {
+            // Development build or read-only folder: let the user download it by hand.
+            OpenUrl(update.PageUrl);
+            Status = "Baixe a nova versão na página que abriu e substitua o arquivo PoPreyClip.exe.";
+            return;
+        }
+
+        IsBusy = true;
+        Progress = 0;
+        try
+        {
+            var file = await _service.DownloadAsync(update, new Progress<double>(p => Progress = p));
+            Status = "Instalando a atualização...";
+            UpdateService.StartInstaller(file, App.ForwardArguments);
+            _exitForUpdate();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException or InvalidDataException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Log.Error($"Não foi possível atualizar: {ex.Message}");
+            Status = $"Não foi possível atualizar: {ex.Message}";
+            IsBusy = false;
+        }
+    }
+
+    private static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+}

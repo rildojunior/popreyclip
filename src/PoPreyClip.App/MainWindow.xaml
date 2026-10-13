@@ -119,8 +119,29 @@
                 <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fechar" />
             </StackPanel>
 
+            <StackPanel Grid.Row="1">
+            <!-- Update banner -->
+            <Border Margin="36,0,36,12" Padding="14,10" CornerRadius="10"
+                    Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                    Visibility="{Binding Updates.IsBannerVisible, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Ver novidades" Command="{Binding Updates.OpenReleasePageCommand}" Padding="12,6" />
+                        <Button Style="{StaticResource PrimaryButton}" Command="{Binding Updates.InstallCommand}" Padding="12,6" Margin="8,0,0,0">
+                            <TextBlock Text="{Binding Updates.InstallText}" />
+                        </Button>
+                        <Button Style="{StaticResource IconButton}" Content="&#xE711;" Command="{Binding Updates.DismissCommand}" Width="28" Height="28" Margin="6,0,0,0" ToolTip="Lembrar depois" />
+                    </StackPanel>
+                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource AccentHoverBrush}" FontSize="16" VerticalAlignment="Center" />
+                    <StackPanel Margin="12,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Updates.AvailableText}" FontWeight="SemiBold" />
+                        <TextBlock Text="O app baixa a versão nova e reinicia sozinho em alguns segundos." FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
             <!-- Error banner -->
-            <Border Grid.Row="1" Margin="36,0,36,12" Padding="14,10" CornerRadius="10"
+            <Border Margin="36,0,36,12" Padding="14,10" CornerRadius="10"
                     Background="{StaticResource DangerSoftBrush}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1"
                     Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
                 <DockPanel>
@@ -129,6 +150,7 @@
                     <TextBlock Text="{Binding ErrorMessage}" Margin="12,0" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
+            </StackPanel>
 
             <Grid Grid.Row="2">
                 <views:HomeView Visibility="{Binding IsHomePage, Converter={StaticResource BoolToVisibility}}" />
@@ -152,8 +174,10 @@
                         <TextBlock Text="&#xE73E;" Style="{StaticResource IconText}" Foreground="{StaticResource SuccessBrush}" FontSize="14" />
                     </Border>
                     <TextBlock Text="{Binding ToastMessage}" Margin="12,0,18,0" VerticalAlignment="Center" FontWeight="SemiBold" />
-                    <Button Content="Assistir" Command="{Binding ToastOpenCommand}" Style="{StaticResource PrimaryButton}" Padding="12,6" />
-                    <Button Content="Mostrar na pasta" Command="{Binding ToastRevealCommand}" Margin="8,0,0,0" Padding="12,6" />
+                    <Button Content="Assistir" Command="{Binding ToastOpenCommand}" Style="{StaticResource PrimaryButton}" Padding="12,6"
+                            Visibility="{Binding HasToastActions, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Content="Mostrar na pasta" Command="{Binding ToastRevealCommand}" Margin="8,0,0,0" Padding="12,6"
+                            Visibility="{Binding HasToastActions, Converter={StaticResource BoolToVisibility}}" />
                     <Button Style="{StaticResource IconButton}" Content="&#xE711;" Command="{Binding CloseToastCommand}" Margin="6,0,0,0" Width="28" Height="28" />
                 </StackPanel>
             </Border>

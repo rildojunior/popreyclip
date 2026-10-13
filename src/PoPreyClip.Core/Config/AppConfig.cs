@@ -29,6 +29,9 @@ public sealed class AppConfig
     /// <summary>Desktop app: closing the window keeps PoPreyClip running in the notification area.</summary>
     public bool MinimizeToTray { get; set; } = true;
 
+    /// <summary>Desktop app: look for a new version on GitHub at start-up and every few hours.</summary>
+    public bool AutoCheckUpdates { get; set; } = true;
+
     /// <summary>Desktop app: play a short sound when a clip is saved.</summary>
     public bool PlaySoundOnClip { get; set; } = true;
 

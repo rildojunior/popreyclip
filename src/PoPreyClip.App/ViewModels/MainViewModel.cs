@@ -44,7 +44,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _toastPath;
     private string _tracksText = "";
 
-    public MainViewModel(ConfigStore store, RecordingSession session, HotkeyManager hotkeys)
+    public MainViewModel(ConfigStore store, RecordingSession session, HotkeyManager hotkeys, Action exitForUpdate)
     {
         _store = store;
         _session = session;
@@ -53,7 +53,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         Audio = new AudioViewModel(store, session);
         Clips = new ClipsViewModel(store);
-        Settings = new SettingsViewModel(store, SetHotkey, _sounds);
+        Updates = new UpdatesViewModel(store, exitForUpdate);
+        Settings = new SettingsViewModel(store, SetHotkey, _sounds) { Updates = Updates };
 
         ToggleRecordingCommand = new AsyncRelayCommand(ToggleRecordingAsync, () => !IsBusy);
         SaveClipCommand = new AsyncRelayCommand(SaveClipAsync, () => IsRecording);
@@ -146,6 +147,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ClipsViewModel Clips { get; }
 
     public SettingsViewModel Settings { get; }
+
+    public UpdatesViewModel Updates { get; }
+
+    /// <summary>Shows a short notice in the corner (no clip actions).</summary>
+    public void ShowNotice(string message)
+    {
+        _toastPath = null;
+        ToastMessage = message;
+        _toastTimer.Stop();
+        _toastTimer.Start();
+    }
 
     public ObservableCollection<LogLine> LogLines { get; } = [];
 
@@ -325,11 +337,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _toastMessage, value))
             {
                 OnPropertyChanged(nameof(IsToastVisible));
+                OnPropertyChanged(nameof(HasToastActions));
             }
         }
     }
 
     public bool IsToastVisible => ToastMessage is not null;
+
+    public bool HasToastActions => _toastPath is not null;
 
     public string ConfigFolderPath => _store.Current.ClipFolder;
 

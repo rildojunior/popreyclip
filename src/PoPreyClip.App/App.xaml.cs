@@ -11,8 +11,10 @@ namespace PoPreyClip.App;
 
 public partial class App : Application
 {
-    private const string InstanceMutexName = "PoPreyClip.SingleInstance";
-    private const string ShowEventName = "PoPreyClip.ShowWindow";
+    // POPREYCLIP_INSTANCE lets automated tests run a separate copy next to the one the user has open.
+    private static readonly string InstanceSuffix = Environment.GetEnvironmentVariable("POPREYCLIP_INSTANCE") ?? "";
+    private static readonly string InstanceMutexName = "PoPreyClip.SingleInstance" + InstanceSuffix;
+    private static readonly string ShowEventName = "PoPreyClip.ShowWindow" + InstanceSuffix;
 
     private Mutex? _instanceMutex;
     private EventWaitHandle? _showEvent;
@@ -27,8 +29,32 @@ public partial class App : Application
         base.OnStartup(e);
         Log.WriteToConsole = false;
         DispatcherUnhandledException += OnUnhandledException;
+        // Errors outside the UI thread would otherwise close the app without a trace in the log.
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error($"Erro fatal: {args.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Log.Error($"Erro em tarefa de fundo: {args.Exception}");
+            args.SetObserved();
+        };
 
         var args = e.Args;
+        ForwardArguments = ForwardedFrom(args);
+        if (GetArgument(args, "--install-update") is { } updateTarget)
+        {
+            // This process is the new version running from the downloads folder: replace the app and reopen it.
+            int.TryParse(GetArgument(args, "--wait-pid"), out var installerWaitPid);
+            var error = PoPreyClip.Updates.UpdateService.RunInstaller(updateTarget, installerWaitPid, ForwardArguments);
+            if (error is not null)
+            {
+                Log.Error(error);
+                MessageBox.Show($"Não foi possível instalar a atualização. O PoPreyClip vai abrir na versão anterior.\n\n{error}",
+                    "PoPreyClip", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            Shutdown();
+            return;
+        }
+
         if (GetArgument(args, "--export-sounds") is { } soundDirectory)
         {
             // Test helper: writes every built-in notification sound as a WAV file.
@@ -45,6 +71,13 @@ public partial class App : Application
         var snapshotDirectory = GetArgument(args, "--snapshot");
         var configPath = GetArgument(args, "--config");
         var startHidden = args.Contains("--minimized");
+        var justUpdated = args.Contains("--updated");
+
+        // After a self-update the new process waits for the old one to exit before taking the single-instance lock.
+        if (GetArgument(args, "--wait-pid") is { } waitPid && int.TryParse(waitPid, out var oldPid))
+        {
+            WaitForExit(oldPid);
+        }
 
         if (snapshotDirectory is null && !AcquireSingleInstance())
         {
@@ -66,7 +99,7 @@ public partial class App : Application
         _store.StartWatching();
         _session = new RecordingSession(_store);
         _hotkeys = new HotkeyManager();
-        _viewModel = new MainViewModel(_store, _session, _hotkeys);
+        _viewModel = new MainViewModel(_store, _session, _hotkeys, () => Dispatcher.InvokeAsync(ExitApplication));
 
         var window = new MainWindow(_viewModel, _store);
         MainWindow = window;
@@ -85,6 +118,12 @@ public partial class App : Application
         }
 
         _viewModel.StartOnLaunch();
+        _viewModel.Updates.Start();
+        _ = PoPreyClip.Updates.UpdateService.CleanupAfterUpdateAsync();
+        if (justUpdated)
+        {
+            _viewModel.ShowNotice($"PoPreyClip atualizado para a versão {PoPreyClip.Updates.UpdateService.CurrentVersion.ToString(3)}");
+        }
     }
 
     private void ExitApplication()
@@ -175,7 +214,7 @@ public partial class App : Application
         window.Left = -30000;
         window.Top = 0;
         window.ShowActivated = false;
-        window.Height = 1450;
+        window.Height = int.TryParse(GetArgument(Environment.GetCommandLineArgs(), "--snapshot-height"), out var snapshotHeight) ? snapshotHeight : 1450;
         window.Show();
         if (record)
         {
@@ -218,6 +257,38 @@ public partial class App : Application
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    private static void WaitForExit(int processId)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(processId);
+            process.WaitForExit(30_000);
+        }
+        catch (ArgumentException)
+        {
+            // Already gone.
+        }
+    }
+
+    /// <summary>Options that must survive a restart after an update (--config and --minimized).</summary>
+    internal static IReadOnlyList<string> ForwardArguments { get; private set; } = [];
+
+    private static List<string> ForwardedFrom(string[] args)
+    {
+        var forwarded = new List<string>();
+        if (GetArgument(args, "--config") is { } config)
+        {
+            forwarded.AddRange(["--config", config]);
+        }
+
+        if (args.Contains("--minimized"))
+        {
+            forwarded.Add("--minimized");
+        }
+
+        return forwarded;
     }
 
     private static string? GetArgument(string[] args, string name)

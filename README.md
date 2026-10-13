@@ -40,6 +40,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, abrir a pasta ou excluir.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo e podem ser trocados nas configurações.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
+- 🔄 **Atualização automática:** avisa quando sai uma versão nova e se atualiza com um clique.
 - ⚡ **Leve:** usa o codificador da placa de vídeo NVIDIA quando existe e o processador nos outros casos.
 
 <table>
@@ -139,6 +140,19 @@ Na tela **Configurações** você troca:
 
 Fechar a janela deixa o PoPreyClip gravando na bandeja. Para sair, clique com o botão direito no ícone da bandeja e escolha **Sair**.
 
+### Atualizações
+
+O PoPreyClip procura versões novas sozinho, ao abrir e a cada 6 horas. Quando sai uma, aparece um aviso no topo do app:
+
+1. Clique em **Atualizar agora**.
+2. O app baixa a versão nova, confere se o arquivo veio inteiro e se reinicia já atualizado. Leva só alguns segundos.
+
+Você pode procurar na hora ou desligar a busca automática em **Configurações → Atualizações**.
+
+> A atualização automática funciona a partir da versão **1.0.1**. Quem tem a 1.0.0 precisa baixar a versão nova uma vez pela página de [Releases](../../releases/latest).
+>
+> Se o `PoPreyClip.exe` estiver numa pasta protegida (como `C:\Arquivos de Programas`), o app abre a página de download em vez de se atualizar. Por isso a recomendação é usar uma pasta sua, como `C:\Programas\PoPreyClip\`.
+
 ## ⌨️ Atalhos padrão
 
 | Atalho | Ação |
@@ -212,6 +226,16 @@ dotnet test PoPreyClip.slnx
 # Gerar o executável único em dist\PoPreyClip.exe
 .\publicar.cmd
 ```
+
+### Lançar uma nova versão
+
+Com o [GitHub CLI](https://cli.github.com/) conectado (`gh auth login`), rode na pasta do projeto:
+
+```powershell
+.\lancar-versao.ps1 -Versao 1.0.2 -Notas "O que mudou nesta versão"
+```
+
+O script roda os testes, atualiza o número da versão, faz o commit, gera o `PoPreyClip.exe` com o arquivo de verificação `PoPreyClip.exe.sha256` e publica tudo em **Releases**. Quem já usa o app recebe o aviso de atualização.
 
 ### Estrutura
 

@@ -46,6 +46,13 @@ internal sealed class TrayIcon : IDisposable
                 _icon.Text = viewModel.IsRecording ? "PoPreyClip · gravando" : "PoPreyClip · parado";
             }
         };
+        viewModel.Updates.UpdateFound += update =>
+        {
+            if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
+            {
+                _icon.ShowBalloonTip(4000, "Nova versão do PoPreyClip", $"A versão {update.Version.ToString(3)} está disponível. Abra o app para atualizar.", Forms.ToolTipIcon.None);
+            }
+        };
         viewModel.ScreenshotSaved += info =>
         {
             if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
