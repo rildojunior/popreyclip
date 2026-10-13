@@ -111,6 +111,8 @@ jobs:
           Quem já tem o PoPreyClip recebe um aviso dentro do app: é só clicar em **Atualizar agora**.
 
           Para instalar do zero, baixe o **PoPreyClip.exe** abaixo, em **Assets**, e siga o [README](https://github.com/${{ github.repository }}#-instalação).
+
+          > O arquivo **PoPreyClip.exe.sha256** é usado pela atualização automática para conferir o download. Não precisa baixá-lo.
           "@
           $notes -replace '(?m)^          ', '' | Set-Content artifacts/notes.md -Encoding utf8
           gh release create "v$version" artifacts/release/PoPreyClip.exe artifacts/release/PoPreyClip.exe.sha256 `

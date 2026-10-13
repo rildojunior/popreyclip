@@ -83,7 +83,7 @@ ffmpeg -version
 ### Passo 2: baixar o PoPreyClip
 
 1. Abra a página de [**Releases**](../../releases/latest).
-2. Baixe o arquivo **`PoPreyClip.exe`**.
+2. Baixe o arquivo **`PoPreyClip.exe`**. O outro arquivo, `PoPreyClip.exe.sha256`, é usado pela atualização automática e não precisa ser baixado.
 3. Coloque o arquivo numa pasta fixa, por exemplo `C:\Programas\PoPreyClip\`.
 
 Não precisa instalar mais nada: o `.exe` já traz tudo o que o app usa, inclusive o .NET.
