@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>PoPreyClip</RootNamespace>
+    <NoWarn>$(NoWarn);SYSLIB1054;SYSLIB1096;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PoPreyClip.Tests" />
+    <InternalsVisibleTo Include="PoPreyClip.Cli" />
+    <InternalsVisibleTo Include="PoPreyClip" />
+  </ItemGroup>
+
+</Project>

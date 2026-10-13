@@ -1,0 +1,16 @@
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+dist/
+
+# Logo work files (test renders and HTML test sheet)
+assets/logo/renders/
+assets/logo/preview.html
+
+# Private notes kept out of the public repository
+docs/privado/
+
+# Release builds
+artifacts/

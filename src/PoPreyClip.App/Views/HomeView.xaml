@@ -1,0 +1,216 @@
+<UserControl x:Class="PoPreyClip.App.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="36,4,36,36">
+            <TextBlock Text="Início" Style="{StaticResource TitleText}" />
+            <TextBlock Text="Grave em segundo plano e salve só os melhores momentos." Style="{StaticResource SubtitleText}" Margin="0,4,0,24" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Recording status -->
+                <Border Style="{StaticResource Card}" Padding="24">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="64" Height="64" CornerRadius="32" VerticalAlignment="Top">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="&#xE7C8;" FontSize="26">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                            <TextBlock Text="{Binding StatusTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="24" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource SubtitleText}" Margin="0,4,0,18" />
+                            <WrapPanel>
+                                <Button Command="{Binding ToggleRecordingCommand}" Margin="0,0,10,8" Padding="18,10">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource Surface3Brush}" />
+                                                    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock Text="{Binding ToggleText}" />
+                                </Button>
+                                <Button Command="{Binding SaveClipCommand}" Style="{StaticResource DangerButton}" Padding="18,10" Margin="0,0,10,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE7C8;" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center" />
+                                        <TextBlock Text="Salvar clipe agora" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding SaveScreenshotCommand}" Padding="18,10" Margin="0,0,10,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="13" VerticalAlignment="Center" />
+                                        <TextBlock Text="Capturar tela" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </WrapPanel>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource TextFaintBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding HotkeyHint}" Style="{StaticResource HintText}" Margin="8,0,0,0" />
+                            </DockPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Current game -->
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="24">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource AccentHoverBrush}" FontSize="16" VerticalAlignment="Center" />
+                            <TextBlock Text="Jogo atual" Style="{StaticResource HintText}" Margin="10,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding CurrentGame}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"
+                                   Margin="0,10,0,6" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="Os clipes vão para uma pasta com o nome do jogo. Jogos em tela cheia são detectados sozinhos."
+                                   Style="{StaticResource HintText}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Tracks -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="20,16">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding NavigateCommand}" CommandParameter="Audio" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE9E9;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" />
+                            <TextBlock Text="Ajustar volumes" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="&#xE767;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Faixas de áudio do clipe" Style="{StaticResource LabelText}" />
+                        <TextBlock Text="{Binding TracksText}" Style="{StaticResource HintText}" Margin="0,3,0,0"
+                                   Visibility="{Binding TracksText, Converter={StaticResource NotEmptyToVisibility}}" />
+                        <TextBlock Text="Inicie a gravação para ver as faixas." Style="{StaticResource HintText}" Margin="0,3,0,0"
+                                   Visibility="{Binding TracksText, Converter={StaticResource NotEmptyToVisibility}, ConverterParameter=Invert}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Recent clips -->
+            <DockPanel Margin="0,30,0,12">
+                <Button DockPanel.Dock="Right" Content="Ver todos" Command="{Binding NavigateCommand}" CommandParameter="Clips" Style="{StaticResource GhostButton}" />
+                <TextBlock Text="Últimos clipes" Style="{StaticResource SectionText}" VerticalAlignment="Center" />
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding Clips.Recent}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding PlayCommand}" Margin="0,0,12,0" Padding="0" Background="Transparent" BorderThickness="0"
+                                HorizontalContentAlignment="Stretch" ToolTip="{Binding FileName}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Card" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                        <StackPanel>
+                                            <Grid Height="112">
+                                                <Border CornerRadius="10,10,0,0" Background="{StaticResource Surface2Brush}">
+                                                    <TextBlock Text="&#xE714;" Style="{StaticResource IconText}" Foreground="{StaticResource TextFaintBrush}" FontSize="22" />
+                                                </Border>
+                                                <Border CornerRadius="10,10,0,0">
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                    </Border.Background>
+                                                </Border>
+                                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" Padding="6,2" CornerRadius="4" Background="#B0000000"
+                                                        Visibility="{Binding DurationText, Converter={StaticResource NotEmptyToVisibility}}">
+                                                    <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="White" />
+                                                </Border>
+                                            </Grid>
+                                            <StackPanel Margin="12,10,12,12">
+                                                <TextBlock Text="{Binding Game}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextBrush}" />
+                                                <TextBlock Text="{Binding DateText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Style="{StaticResource Card}" Padding="20"
+                    Visibility="{Binding Clips.Recent.Count, Converter={StaticResource NotEmptyToVisibility}, ConverterParameter=Invert, FallbackValue=Collapsed}"
+                    x:Name="NoClips">
+                <TextBlock Style="{StaticResource HintText}" HorizontalAlignment="Center">
+                    <Run Text="Nenhum clipe ainda. Inicie a gravação e pressione" />
+                    <Run Text="{Binding Settings.SaveClipHotkey, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                    <Run Text="durante o jogo." />
+                </TextBlock>
+            </Border>
+
+            <!-- Activity -->
+            <TextBlock Text="Atividade" Style="{StaticResource SectionText}" Margin="0,30,0,12" />
+            <Border Style="{StaticResource Card}" Padding="0">
+                <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto" Padding="18,12">
+                    <ItemsControl ItemsSource="{Binding LogLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Time}" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextFaintBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Message}" FontSize="12.5" TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

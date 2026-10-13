@@ -1,0 +1,140 @@
+<UserControl x:Class="PoPreyClip.App.Views.AudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="36,4,36,36">
+            <TextBlock Text="Áudio" Style="{StaticResource TitleText}" />
+            <TextBlock Text="Ajuste o volume de cada fonte. O volume muda na hora, mesmo com a gravação em andamento."
+                       Style="{StaticResource SubtitleText}" Margin="0,4,0,24" />
+
+            <!-- Track mode -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Como o áudio vai para o clipe" Style="{StaticResource SectionText}" />
+                    <TextBlock Text="Os volumes abaixo valem para todas as faixas." Style="{StaticResource HintText}" Margin="0,4,0,16" />
+                    <UniformGrid Columns="3">
+                        <RadioButton Style="{StaticResource OptionCard}" GroupName="mode" Margin="0,0,10,0"
+                                     IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Unified}">
+                            <StackPanel>
+                                <TextBlock Text="Unificado" Style="{StaticResource LabelText}" />
+                                <TextBlock Text="Uma faixa com tudo misturado." Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionCard}" GroupName="mode" Margin="5,0"
+                                     IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=SeparateAndUnified}">
+                            <StackPanel>
+                                <TextBlock Text="Separado + unificado" Style="{StaticResource LabelText}" />
+                                <TextBlock Text="Faixa &quot;Mix&quot; e uma faixa por fonte." Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="4" Padding="6,1" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                    <TextBlock Text="Recomendado" FontSize="11" Foreground="{StaticResource AccentHoverBrush}" />
+                                </Border>
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton Style="{StaticResource OptionCard}" GroupName="mode" Margin="10,0,0,0"
+                                     IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Separate}">
+                            <StackPanel>
+                                <TextBlock Text="Somente separado" Style="{StaticResource LabelText}" />
+                                <TextBlock Text="Uma faixa por fonte, sem mix." Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                            </StackPanel>
+                        </RadioButton>
+                    </UniformGrid>
+                    <TextBlock Text="{Binding ModeDescription}" Style="{StaticResource HintText}" Margin="0,14,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Sources -->
+            <TextBlock Text="Fontes de áudio" Style="{StaticResource SectionText}" Margin="0,30,0,4" />
+            <TextBlock Text="Ligar ou desligar uma fonte reinicia a gravação, e o buffer recomeça do zero."
+                       Style="{StaticResource HintText}" Margin="0,0,0,12" />
+            <ItemsControl ItemsSource="{Binding Sources}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12" Padding="20,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Border Width="44" Height="44" CornerRadius="12" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource IconText}" FontSize="19" Foreground="{StaticResource AccentHoverBrush}" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Margin="16,0,20,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource LabelText}" FontSize="15" />
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource HintText}" Margin="0,2,0,0" />
+                                    <ComboBox ItemsSource="{Binding Microphones}" SelectedItem="{Binding Device}" Margin="0,10,0,0" MaxWidth="380" HorizontalAlignment="Left" MinWidth="280"
+                                              Visibility="{Binding IsMicrophone, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+
+                                <Grid Grid.Column="2" Width="330" VerticalAlignment="Center" IsEnabled="{Binding Enabled}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="64" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="78" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Volume" Style="{StaticResource HintText}" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Minimum="0" Maximum="200" SmallChange="1" LargeChange="10" Margin="6,0"
+                                            Value="{Binding Volume, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="{Binding VolumeText}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+
+                                    <TextBlock Grid.Row="1" Text="Reforço" Style="{StaticResource HintText}" VerticalAlignment="Center" Margin="0,10,0,0"
+                                               ToolTip="Amplifica fontes baixas, como microfones. Um limitador evita que o som distorça." />
+                                    <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="30" SmallChange="1" LargeChange="3" Margin="6,10,6,0"
+                                            IsSnapToTickEnabled="True" TickFrequency="1"
+                                            Value="{Binding GainDb, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding GainText}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,10,0,0" />
+                                </Grid>
+
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center" Width="96">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Enabled}" ToolTip="Capturar esta fonte" />
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE74D;" Margin="10,0,0,0" Command="{Binding RemoveCommand}" ToolTip="Remover fonte"
+                                            Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+
+                                <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource LevelMeter}" Margin="16,14,0,0"
+                                             Value="{Binding Level, Mode=OneWay}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Add app -->
+            <Border Style="{StaticResource Card}" Margin="0,4,0,0">
+                <StackPanel>
+                    <TextBlock Text="Adicionar aplicativo" Style="{StaticResource SectionText}" />
+                    <TextBlock Text="Escolha um programa aberto (Spotify, navegador, chamadas...) para gravar o som dele numa faixa própria."
+                               Style="{StaticResource HintText}" Margin="0,4,0,14" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox ItemsSource="{Binding RunningApps}" SelectedItem="{Binding SelectedApp}" DisplayMemberPath="Display" />
+                        <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xE72C;" Margin="8,0" Command="{Binding RefreshAppsCommand}" ToolTip="Atualizar lista" />
+                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Command="{Binding AddAppCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Adicionar" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="Carregando aplicativos..." Style="{StaticResource HintText}" Margin="0,8,0,0"
+                               Visibility="{Binding LoadingApps, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

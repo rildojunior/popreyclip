@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#4f46e5"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="32" font-weight="600" fill="#ffffff">P</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title"><title id="title">PoPreyClip</title><rect width="256" height="256" rx="56" fill="#4F46E5"/><g transform="translate(128 128) scale(0.7) translate(-128 -128)"><path fill="#FFFFFF" fill-rule="evenodd" d="M242 128 A114 114 0 1 1 14 128 A114 114 0 1 1 242 128 Z M218 128 A90 90 0 1 1 38 128 A90 90 0 1 1 218 128 Z"/><path fill="#FFFFFF" fill-rule="evenodd" d="M190 128 A62 62 0 1 1 66 128 A62 62 0 1 1 190 128 Z M128 74 A90 90 0 0 1 128 182 A90 90 0 0 1 128 74 Z"/></g></svg>

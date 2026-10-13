@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PoPreyClip.App/PoPreyClip.App.csproj" />
+    <Project Path="src/PoPreyClip.Cli/PoPreyClip.Cli.csproj" />
+    <Project Path="src/PoPreyClip.Core/PoPreyClip.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PoPreyClip.Tests/PoPreyClip.Tests.csproj" />
+  </Folder>
+</Solution>
