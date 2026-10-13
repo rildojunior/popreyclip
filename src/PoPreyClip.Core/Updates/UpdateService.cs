@@ -70,7 +70,9 @@ public sealed class UpdateService
         get
         {
             var exe = Environment.ProcessPath;
+#pragma warning disable IL3000 // Location is empty exactly when running as a single-file app, which is what we detect.
             var isSingleFile = string.IsNullOrEmpty(typeof(UpdateService).Assembly.Location);
+#pragma warning restore IL3000
             if (exe is null || !isSingleFile)
             {
                 return false;
