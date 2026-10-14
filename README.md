@@ -42,6 +42,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, abrir a pasta ou excluir.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo e podem ser trocados nas configurações.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
+- 🚀 **Inicia com o Windows (opcional):** abre sozinho ao ligar o PC, já escondido na bandeja.
 - 🔄 **Atualização automática:** avisa quando sai uma versão nova e se atualiza com um clique.
 - ⚡ **Leve:** usa o codificador da placa de vídeo NVIDIA quando existe e o processador nos outros casos.
 
@@ -139,7 +140,8 @@ Na tela **Configurações** você troca:
 - os atalhos (clique no campo e aperte as teclas);
 - a duração do clipe (de 5 segundos a 5 minutos);
 - o codificador, os quadros por segundo, o monitor e a qualidade do vídeo;
-- os sons de aviso e o que acontece ao fechar a janela.
+- os sons de aviso e o que acontece ao fechar a janela;
+- **Iniciar com o Windows**, em **Comportamento**, para o app abrir sozinho ao ligar o PC.
 
 ### Sair de verdade
 

@@ -289,6 +289,14 @@
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />
                     <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartWithWindows}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Iniciar com o Windows" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Abre sozinho ao ligar o PC, já escondido na bandeja." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding MinimizeToTray}" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Continuar na bandeja ao fechar a janela" Style="{StaticResource LabelText}" />

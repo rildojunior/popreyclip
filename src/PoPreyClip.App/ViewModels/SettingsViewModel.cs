@@ -334,6 +334,27 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>Games and watched apps list (shared card in the settings page).</summary>
     public WatchedGamesViewModel Watched { get; }
 
+    private readonly PoPreyClip.Startup.WindowsStartup _startup = new();
+
+    /// <summary>Lives in the Windows Run key, not in the config file.</summary>
+    public bool StartWithWindows
+    {
+        get => _startup.IsEnabled;
+        set
+        {
+            try
+            {
+                _startup.SetEnabled(value);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                Log.Warn($"Could not change start with Windows: {ex.Message}");
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
     public bool MinimizeToTray
     {
         get => C.MinimizeToTray;

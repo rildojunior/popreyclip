@@ -112,9 +112,19 @@ public partial class App : Application
 
         _tray = new TrayIcon(window, _viewModel, ExitApplication);
         window.ExitRequested += ExitApplication;
-        if (!(startHidden && _store.Current.MinimizeToTray))
+        // --minimized (start with Windows) starts in the tray; the tray icon opens the window.
+        if (!startHidden)
         {
             window.Show();
+        }
+
+        try
+        {
+            new PoPreyClip.Startup.WindowsStartup().RefreshPath();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+            Log.Warn($"Could not refresh start with Windows: {ex.Message}");
         }
 
         _viewModel.StartOnLaunch();
