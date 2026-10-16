@@ -412,6 +412,28 @@
                             <TextBlock Text="Ao abrir e a cada 6 horas. Quando sair uma versão nova, aparece um aviso para atualizar com um clique." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding Updates.OpenChangelogCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE789;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="Novidades" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="8,0,0,0" Command="{Binding Updates.OpenRepositoryCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8A7;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="Abrir no GitHub" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="PoPreyClip no GitHub" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="O que mudou em cada versão, o guia de instalação e uso, e onde avisar de problemas." Style="{StaticResource HintText}" />
+                            <TextBlock Text="{Binding Updates.RepositoryText}" Style="{StaticResource HintText}" FontFamily="Consolas" />
+                        </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
 

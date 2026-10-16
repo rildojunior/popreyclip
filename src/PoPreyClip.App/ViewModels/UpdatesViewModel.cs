@@ -30,6 +30,8 @@ public sealed class UpdatesViewModel : ObservableObject
         CheckNowCommand = new AsyncRelayCommand(() => CheckAsync(manual: true), () => !IsBusy);
         InstallCommand = new AsyncRelayCommand(InstallAsync, () => Available is not null && !IsBusy);
         OpenReleasePageCommand = new RelayCommand(() => OpenUrl(Available?.PageUrl ?? UpdateService.ReleasesPage));
+        OpenRepositoryCommand = new RelayCommand(() => OpenUrl(UpdateService.RepositoryPage));
+        OpenChangelogCommand = new RelayCommand(() => OpenUrl(UpdateService.ChangelogPage));
         DismissCommand = new RelayCommand(() =>
         {
             _dismissed = true;
@@ -53,6 +55,13 @@ public sealed class UpdatesViewModel : ObservableObject
     public ICommand InstallCommand { get; }
 
     public ICommand OpenReleasePageCommand { get; }
+
+    public ICommand OpenRepositoryCommand { get; }
+
+    public ICommand OpenChangelogCommand { get; }
+
+    /// <summary>Shown under the GitHub buttons, e.g. "github.com/rildojunior/popreyclip".</summary>
+    public string RepositoryText => UpdateService.RepositoryPage.Replace("https://", "", StringComparison.Ordinal);
 
     public ICommand DismissCommand { get; }
 

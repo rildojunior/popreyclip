@@ -238,6 +238,15 @@ public partial class App : Application
             await Task.Delay(page == AppPage.Clips ? 3500 : 1200);
             await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
             SaveSnapshot(window, Path.Combine(directory, $"{(int)page}-{page}.png"));
+
+            // Long pages also get a picture of their end (the window can't be taller than the screen).
+            if (FindScrollViewer(window) is { ScrollableHeight: > 0 } scroller)
+            {
+                scroller.ScrollToEnd();
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                SaveSnapshot(window, Path.Combine(directory, $"{(int)page}-{page}-fim.png"));
+                scroller.ScrollToHome();
+            }
         }
 
         if (record)
@@ -253,6 +262,25 @@ public partial class App : Application
         window.AllowClose = true;
         window.Close();
         Shutdown();
+    }
+
+    private static System.Windows.Controls.ScrollViewer? FindScrollViewer(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is System.Windows.Controls.ScrollViewer { ScrollableHeight: > 0 } scroller)
+            {
+                return scroller;
+            }
+
+            if (FindScrollViewer(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static void SaveSnapshot(Window window, string path)

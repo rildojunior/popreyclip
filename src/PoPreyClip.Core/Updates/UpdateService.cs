@@ -28,6 +28,12 @@ public sealed class UpdateService
 
     public static string ReleasesPage => $"https://github.com/{Repository}/releases/latest";
 
+    /// <summary>Project page: README with install and usage steps, source code.</summary>
+    public static string RepositoryPage => $"https://github.com/{Repository}";
+
+    /// <summary>Notes of every version, newest first.</summary>
+    public static string ChangelogPage => $"https://github.com/{Repository}/releases";
+
     private static string UpdatesDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PoPreyClip", "updates");
 

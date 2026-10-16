@@ -96,8 +96,19 @@ jobs:
           $version = "${{ steps.version.outputs.version }}"
           $previous = "${{ steps.version.outputs.previous }}"
           $range = if ($previous) { "$previous..HEAD" } else { "HEAD" }
+          # One item per commit: the title in bold, and the "- ..." lines of the commit description as sub-items.
           # Commits marked [skip ci] (internal changes) stay out of the notes friends read.
-          $changes = git log $range --no-merges --pretty=format:"- %s" | Where-Object { -not $_.Contains('[skip ci]') }
+          $changes = foreach ($hash in (git log $range --no-merges --format=%H)) {
+            $subject = git log -1 --format=%s $hash
+            if ($subject.Contains('[skip ci]')) { continue }
+            $items = [System.Collections.Generic.List[string]]::new()
+            foreach ($line in (git log -1 --format=%b $hash)) {
+              if ($line -match '^Co-Authored-By:') { continue }
+              if ($line -match '^\s*[-*]\s+(.+)$') { $items.Add($Matches[1].Trim()) }
+              elseif ($items.Count -gt 0 -and $line -match '^\s+(\S.*)$') { $items[$items.Count - 1] += ' ' + $Matches[1].Trim() }
+            }
+            if ($items.Count -gt 0) { "- **$subject**"; $items | ForEach-Object { "  - $_" } } else { "- $subject" }
+          }
           if (-not $changes) { $changes = "- Melhorias e correções." }
           $notes = @"
           ## PoPreyClip $version
