@@ -1,11 +1,13 @@
-# Builds, tests and publishes a new PoPreyClip release on every push to main.
-# The installed apps see the new release and offer the update.
+# Builds and tests PoPreyClip on every push to main, and publishes a release only when asked.
+# Changes pile up on main until the owner releases them, so users don't get several small updates a day.
 #
-# - Commits that only touch documentation or logo files do not create a release.
-# - Add [skip ci] to a commit message to push without releasing.
+# - Push to main: tests and builds the exe, publishes nothing.
+# - Release: Actions tab → Release → Run workflow (or `gh workflow run release.yml`). The notes list every
+#   commit since the last release. Leave "Publicar" unchecked to only download a test copy.
+# - Commits that only touch documentation or logo files skip the build. [skip ci] skips it too and keeps
+#   the commit out of the release notes.
 # - The version is the last release + 1 on the patch number (1.0.1 -> 1.0.2).
 #   To jump to 1.1.0 or 2.0.0, set <Version> in src/PoPreyClip.App/PoPreyClip.App.csproj to that number.
-# - "Run workflow" on the Actions tab can also build a test copy without publishing (dry run).
 
 name: Release
 
@@ -21,8 +23,8 @@ on:
       - ".gitignore"
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Só compilar e testar, sem publicar a versão"
+      publicar:
+        description: "Publicar a versão para todos (desmarcado: só gera uma cópia de teste)"
         type: boolean
         default: true
 
@@ -83,14 +85,14 @@ jobs:
           Get-Item artifacts/release/PoPreyClip.exe | Format-List Name, Length
 
       - name: Guardar a cópia de teste
-        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        if: github.event_name == 'workflow_dispatch' && !inputs.publicar
         uses: actions/upload-artifact@v4
         with:
           name: PoPreyClip-${{ steps.version.outputs.version }}-teste
           path: artifacts/release/
 
       - name: Publicar a versão
-        if: github.event_name == 'push' || !inputs.dry_run
+        if: github.event_name == 'workflow_dispatch' && inputs.publicar
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
