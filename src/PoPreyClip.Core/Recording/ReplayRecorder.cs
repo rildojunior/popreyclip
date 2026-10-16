@@ -6,24 +6,35 @@ using PoPreyClip.Config;
 namespace PoPreyClip.Recording;
 
 /// <summary>
-/// Continuous replay buffer: one ffmpeg process captures the screen (Desktop Duplication) plus one raw
-/// PCM named pipe per audio track, and writes short MPEG-TS segments. Old segments are deleted, so
-/// only the last few seconds are kept on disk until a clip is saved.
+/// Continuous replay buffer made of two ffmpeg processes that write short MPEG-TS segments:
+/// <list type="bullet">
+/// <item>audio: one raw PCM named pipe per track; its timestamps count samples from the first one;</item>
+/// <item>video: the game window (Windows Graphics Capture) or the monitor (Desktop Duplication), stamped with
+/// the wall clock and shifted so that zero is the audio's first sample.</item>
+/// </list>
+/// Keeping them apart means a capture that stalls (minimized game, GPU at 100%) can never hold up the audio:
+/// in one process ffmpeg stops reading every input that runs ahead of the slowest one, so a frozen picture
+/// used to freeze the sound too and push it out of sync. Clips join both on the shared time base.
+/// Old segments are deleted, so only the last few seconds stay on disk until a clip is saved.
 /// </summary>
 internal sealed class ReplayRecorder : IDisposable
 {
-    private const string SegmentPattern = "seg*.ts";
+    public const string VideoSegmentPrefix = "v";
+    public const string AudioSegmentPrefix = "a";
     private static int _sessionCounter;
     private readonly AppConfig _config;
     private readonly Func<AppConfig> _live;
-    private Process? _process;
-    private StreamWriter? _ffmpegLog;
+    private readonly List<(Process Process, StreamWriter Log)> _processes = [];
+    private long _frames;
+    private long _lastFrameTick = Environment.TickCount64;
 
     /// <param name="config">Settings fixed for this recording (video, tracks).</param>
+    /// <param name="source">What to film.</param>
     /// <param name="live">Current settings, for values that may change while recording (clip length).</param>
-    public ReplayRecorder(AppConfig config, Func<AppConfig>? live = null)
+    public ReplayRecorder(AppConfig config, VideoSource source, Func<AppConfig>? live = null)
     {
         _config = config;
+        Source = source;
         _live = live ?? (() => config);
         BufferDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PoPreyClip", "buffer",
@@ -31,6 +42,13 @@ internal sealed class ReplayRecorder : IDisposable
     }
 
     public string BufferDirectory { get; }
+
+    public VideoSource Source { get; }
+
+    public bool HasAudio { get; private set; }
+
+    /// <summary>Seconds since ffmpeg last encoded a new video frame (or since start, before the first one).</summary>
+    public double SecondsSinceLastFrame => (Environment.TickCount64 - Interlocked.Read(ref _lastFrameTick)) / 1000.0;
 
     /// <summary>Deletes buffers left behind by PoPreyClip instances that are no longer running.</summary>
     public static void CleanupStaleBuffers()
@@ -67,13 +85,15 @@ internal sealed class ReplayRecorder : IDisposable
         return path is not null && Path.GetFileNameWithoutExtension(path).StartsWith("PoPreyClip", StringComparison.OrdinalIgnoreCase);
     }
 
-    public bool HasExited => _process is { HasExited: true };
+    public bool HasExited => _processes.Any(p => p.Process.HasExited);
 
-    public int ExitCode => _process?.ExitCode ?? 0;
+    public int ExitCode => _processes.FirstOrDefault(p => p.Process.HasExited).Process?.ExitCode ?? 0;
 
-    public string FfmpegLogPath => Path.Combine(BufferDirectory, "ffmpeg.log");
-
-    public void Start(IReadOnlyList<PipeAudioSink> audioTracks)
+    /// <summary>
+    /// Starts the audio process, then <paramref name="startPacer"/> (audio flows into the pipes), waits for the
+    /// first sample and starts the video process aligned to it.
+    /// </summary>
+    public void Start(IReadOnlyList<PipeAudioSink> audioTracks, Action startPacer)
     {
         if (Directory.Exists(BufferDirectory))
         {
@@ -81,62 +101,122 @@ internal sealed class ReplayRecorder : IDisposable
         }
 
         Directory.CreateDirectory(BufferDirectory);
+        HasAudio = audioTracks.Count > 0;
+        if (HasAudio)
+        {
+            Launch("audio", BuildAudioArguments(_config, audioTracks.Select(t => t.PipePath).ToList()), video: false);
+        }
+
+        startPacer();
+        var timeZero = DateTimeOffset.UtcNow;
+        if (HasAudio)
+        {
+            try
+            {
+                if (audioTracks[0].FirstSample.Wait(TimeSpan.FromSeconds(10)))
+                {
+                    timeZero = audioTracks[0].FirstSample.Result;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"O FFmpeg não começou a gravar o áudio. {ReadFfmpegLogTail()}");
+                }
+            }
+            catch (AggregateException ex) when (ex.InnerException is TaskCanceledException)
+            {
+                throw new InvalidOperationException("A gravação foi interrompida ao iniciar.");
+            }
+        }
+
+        Launch("video", BuildVideoArguments(_config, EncoderSelector.Resolve(_config), Source, timeZero), video: true);
+    }
+
+    private void Launch(string name, IReadOnlyList<string> arguments, bool video)
+    {
         var info = new ProcessStartInfo(_config.FfmpegExe)
         {
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardInput = true,
+            RedirectStandardOutput = true,
             RedirectStandardError = true,
             WorkingDirectory = BufferDirectory,
         };
-        foreach (var argument in BuildArguments(_config, audioTracks.Select(t => t.PipePath).ToList(), EncoderSelector.Resolve(_config)))
+        foreach (var argument in arguments)
         {
             info.ArgumentList.Add(argument);
         }
 
-        Log.Debug("ffmpeg " + string.Join(' ', info.ArgumentList));
-        _ffmpegLog = new StreamWriter(FfmpegLogPath) { AutoFlush = true };
-        _process = Process.Start(info) ?? throw new InvalidOperationException("Não foi possível iniciar o ffmpeg.");
-        PoPreyClip.Native.ChildProcessJob.Attach(_process);
-        _process.ErrorDataReceived += (_, e) =>
+        Log.Debug($"ffmpeg ({name}) " + string.Join(' ', info.ArgumentList));
+        var log = new StreamWriter(Path.Combine(BufferDirectory, $"ffmpeg-{name}.log")) { AutoFlush = true };
+        var process = Process.Start(info) ?? throw new InvalidOperationException("Não foi possível iniciar o ffmpeg.");
+        _processes.Add((process, log));
+        PoPreyClip.Native.ChildProcessJob.Attach(process);
+        PoPreyClip.Native.RecorderPriority.Raise(process, gpu: video);
+        if (video)
+        {
+            process.OutputDataReceived += (_, e) => OnProgress(e.Data);
+        }
+
+        process.BeginOutputReadLine();
+        process.ErrorDataReceived += (_, e) =>
         {
             if (e.Data is not null)
             {
-                lock (_ffmpegLog)
+                lock (log)
                 {
-                    _ffmpegLog.WriteLine(e.Data);
+                    log.WriteLine(e.Data);
                 }
             }
         };
-        _process.BeginErrorReadLine();
+        process.BeginErrorReadLine();
     }
 
-    internal static List<string> BuildArguments(AppConfig config, IReadOnlyList<string> audioPipes, string? encoderOverride = null)
+    /// <summary>ffmpeg -progress lines ("frame=123") tell whether video frames are still arriving.</summary>
+    private void OnProgress(string? line)
+    {
+        if (line is null || !line.StartsWith("frame=", StringComparison.Ordinal)
+            || !long.TryParse(line.AsSpan(6), NumberStyles.Integer, CultureInfo.InvariantCulture, out var frames))
+        {
+            return;
+        }
+
+        if (frames > Interlocked.Exchange(ref _frames, frames))
+        {
+            Interlocked.Exchange(ref _lastFrameTick, Environment.TickCount64);
+        }
+    }
+
+    internal static List<string> BuildVideoArguments(AppConfig config, string? encoderOverride, VideoSource source, DateTimeOffset timeZero)
     {
         var video = config.Video;
         var encoder = encoderOverride ?? (string.Equals(video.Encoder, EncoderSelector.Auto, StringComparison.OrdinalIgnoreCase) ? "libx264" : video.Encoder);
         var isNvenc = encoder.EndsWith("_nvenc", StringComparison.OrdinalIgnoreCase);
-        var gop = video.Fps * video.SegmentSeconds;
+        var fps = video.Fps.ToString(CultureInfo.InvariantCulture);
+        var cursor = video.ShowCursor ? 1 : 0;
+
+        // Window capture films only the game (no alt-tab, overlays or desktop). Frames arrive when the game draws;
+        // width/height -2 keep the size even, which the encoders need.
+        var input = source.IsWindow
+            ? $"gfxcapture=hwnd={(ulong)source.Window}:max_framerate={fps}:capture_cursor={cursor}:width=-2:height=-2"
+            : $"ddagrab=output_idx={video.MonitorIndex}:framerate={fps}:draw_mouse={cursor}";
+
+        // Wall-clock timestamps (seconds since 1970) shifted at the input so 0 = the audio's first sample, and kept
+        // as they are (-copyts). Shifting at the input keeps them small, which the constant frame rate needs.
+        var offset = (timeZero.ToUnixTimeMilliseconds() / 1000.0).ToString("0.000", CultureInfo.InvariantCulture);
         var args = new List<string>
         {
-            "-hide_banner", "-loglevel", "warning", "-nostats", "-y",
-            "-f", "lavfi", "-i",
-            $"ddagrab=output_idx={video.MonitorIndex}:framerate={video.Fps}:draw_mouse={(video.ShowCursor ? 1 : 0)}",
+            "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1", "-stats_period", "1", "-y",
+            "-use_wallclock_as_timestamps", "1", "-itsoffset", "-" + offset, "-f", "lavfi", "-i", input,
+            "-copyts",
+            "-map", "0:v",
+            // Constant frame rate: when frames stop (minimized game) the gap is filled with the last picture.
+            "-fps_mode", "cfr", "-r", fps,
         };
 
-        foreach (var pipe in audioPipes)
-        {
-            args.AddRange([
-                "-thread_queue_size", "4096",
-                "-f", AudioFormat.FfmpegSampleFormat, "-ar", AudioFormat.SampleRate.ToString(CultureInfo.InvariantCulture),
-                "-ac", AudioFormat.Channels.ToString(CultureInfo.InvariantCulture), "-i", pipe,
-            ]);
-        }
-
-        args.AddRange(["-map", "0:v"]);
         if (isNvenc)
         {
-            // NVENC takes the D3D11 frames from Desktop Duplication directly, without a copy to system memory.
+            // NVENC takes the D3D11 frames from the capture directly, without a copy to system memory.
             args.AddRange(["-c:v", encoder, "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", video.Quality.ToString(CultureInfo.InvariantCulture), "-b:v", "0", "-forced-idr", "1"]);
         }
         else if (encoder.Equals("libx264", StringComparison.OrdinalIgnoreCase))
@@ -148,33 +228,81 @@ internal sealed class ReplayRecorder : IDisposable
             args.AddRange(["-vf", "hwdownload,format=bgra,format=nv12", "-c:v", encoder, "-qp_i", video.Quality.ToString(CultureInfo.InvariantCulture)]);
         }
 
-        args.AddRange(["-g", gop.ToString(CultureInfo.InvariantCulture), "-force_key_frames", $"expr:gte(t,n_forced*{video.SegmentSeconds})"]);
-
-        for (var i = 0; i < audioPipes.Count; i++)
-        {
-            args.AddRange(["-map", $"{i + 1}:a"]);
-        }
-
-        if (audioPipes.Count > 0)
-        {
-            args.AddRange(["-c:a", "aac", "-b:a", $"{config.Audio.AudioBitrateKbps}k"]);
-        }
-
-        args.AddRange([
-            "-max_muxing_queue_size", "2048",
-            "-f", "segment", "-segment_time", video.SegmentSeconds.ToString(CultureInfo.InvariantCulture),
-            "-segment_format", "mpegts", "-reset_timestamps", "0",
-            "seg%06d.ts",
-        ]);
+        // A keyframe starts every segment, so a clip can begin at any of them.
+        args.AddRange(["-g", (video.Fps * video.SegmentSeconds).ToString(CultureInfo.InvariantCulture)]);
+        args.AddRange(SegmentArguments(video, VideoSegmentPrefix));
         return args;
     }
 
-    /// <summary>Newest segments covering at least <paramref name="seconds"/> (the last one may still be growing).</summary>
-    public List<string> GetRecentSegments(int seconds)
+    internal static List<string> BuildAudioArguments(AppConfig config, IReadOnlyList<string> audioPipes)
+    {
+        var args = new List<string> { "-hide_banner", "-loglevel", "warning", "-nostats", "-y" };
+        foreach (var pipe in audioPipes)
+        {
+            args.AddRange([
+                "-thread_queue_size", "4096",
+                "-f", AudioFormat.FfmpegSampleFormat, "-ar", AudioFormat.SampleRate.ToString(CultureInfo.InvariantCulture),
+                "-ac", AudioFormat.Channels.ToString(CultureInfo.InvariantCulture), "-i", pipe,
+            ]);
+        }
+
+        for (var i = 0; i < audioPipes.Count; i++)
+        {
+            args.AddRange(["-map", $"{i}:a"]);
+        }
+
+        args.AddRange(["-c:a", "aac", "-b:a", $"{config.Audio.AudioBitrateKbps}k"]);
+        args.AddRange(SegmentArguments(config.Video, AudioSegmentPrefix));
+        return args;
+    }
+
+    /// <summary>Segment muxer settings. flush_packets writes every packet right away, so a segment never ends mid-frame.</summary>
+    private static string[] SegmentArguments(VideoConfig video, string prefix) =>
+    [
+        "-max_muxing_queue_size", "2048",
+        "-f", "segment", "-segment_time", video.SegmentSeconds.ToString(CultureInfo.InvariantCulture),
+        "-segment_format", "mpegts", "-segment_format_options", "flush_packets=1", "-reset_timestamps", "0",
+        prefix + "%06d.ts",
+    ];
+
+    /// <summary>
+    /// Waits until the video segment being written right now is finished (ffmpeg moved on to the next one), so a
+    /// clip includes the moment the key was pressed. Returns the finished segment, or null if it did not finish in
+    /// time (e.g. a minimized game sends no frames): then the growing segment is used as it is.
+    /// </summary>
+    public async Task<string?> WaitForCurrentSegmentAsync()
+    {
+        var current = NewestSegment(VideoSegmentPrefix);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var deadline = Environment.TickCount64 + (_config.Video.SegmentSeconds * 1000) + 1500;
+        while (Environment.TickCount64 < deadline && !HasExited)
+        {
+            if (string.CompareOrdinal(NewestSegment(VideoSegmentPrefix), current) > 0)
+            {
+                return current;
+            }
+
+            await Task.Delay(100);
+        }
+
+        return null;
+    }
+
+    private string? NewestSegment(string prefix) => Segments(prefix).LastOrDefault();
+
+    private List<string> Segments(string prefix) =>
+        Directory.GetFiles(BufferDirectory, prefix + "*.ts").Order(StringComparer.Ordinal).ToList();
+
+    /// <summary>Newest non-empty segments of one stream covering at least <paramref name="seconds"/>, ending at <paramref name="last"/> when given.</summary>
+    public List<string> GetRecentSegments(string prefix, int seconds, string? last = null)
     {
         var needed = (int)Math.Ceiling(seconds / (double)_config.Video.SegmentSeconds) + 2;
-        return Directory.GetFiles(BufferDirectory, SegmentPattern)
-            .Order(StringComparer.Ordinal)
+        return Segments(prefix)
+            .Where(f => last is null || string.CompareOrdinal(Path.GetFileName(f), Path.GetFileName(last)) <= 0)
             .TakeLast(needed)
             .Where(f => new FileInfo(f).Length > 0)
             .ToList();
@@ -189,62 +317,76 @@ internal sealed class ReplayRecorder : IDisposable
         }
 
         var keep = (int)Math.Ceiling(Math.Max(_config.ClipSeconds, _live().ClipSeconds) / (double)_config.Video.SegmentSeconds) + 4;
-        var segments = Directory.GetFiles(BufferDirectory, SegmentPattern).Order(StringComparer.Ordinal).ToList();
-        foreach (var old in segments.Take(Math.Max(0, segments.Count - keep)))
+        foreach (var prefix in new[] { VideoSegmentPrefix, AudioSegmentPrefix })
         {
-            try
+            var segments = Segments(prefix);
+            foreach (var old in segments.Take(Math.Max(0, segments.Count - keep)))
             {
-                File.Delete(old);
-            }
-            catch (IOException)
-            {
-                // Still being read by an export; try again on the next cleanup.
-            }
-            catch (UnauthorizedAccessException)
-            {
+                try
+                {
+                    File.Delete(old);
+                }
+                catch (IOException)
+                {
+                    // Still being read by an export; try again on the next cleanup.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
             }
         }
     }
 
     public string ReadFfmpegLogTail()
     {
-        try
-        {
-            using var stream = new FileStream(FfmpegLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var reader = new StreamReader(stream);
-            return string.Join(Environment.NewLine, reader.ReadToEnd().Split('\n').TakeLast(10));
-        }
-        catch (IOException)
-        {
-            return "";
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_process is { HasExited: false })
+        var lines = new List<string>();
+        foreach (var file in Directory.Exists(BufferDirectory) ? Directory.GetFiles(BufferDirectory, "ffmpeg-*.log") : [])
         {
             try
             {
-                _process.StandardInput.Write('q');
-                _process.StandardInput.Flush();
+                using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(stream);
+                lines.AddRange(reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries).TakeLast(5));
             }
             catch (IOException)
             {
             }
+        }
 
-            if (!_process.WaitForExit(5000))
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    public void Dispose()
+    {
+        // Video first ("q" finishes the segment); the audio process ends by itself when the pipes close.
+        foreach (var (process, _) in Enumerable.Reverse(_processes))
+        {
+            if (process.HasExited)
             {
-                _process.Kill(entireProcessTree: true);
+                continue;
+            }
+
+            try
+            {
+                process.StandardInput.Write('q');
+                process.StandardInput.Flush();
+            }
+            catch (IOException)
+            {
             }
         }
 
-        _process?.Dispose();
-        if (_ffmpegLog is not null)
+        foreach (var (process, log) in _processes)
         {
-            lock (_ffmpegLog)
+            if (!process.HasExited && !process.WaitForExit(3000))
             {
-                _ffmpegLog.Dispose();
+                process.Kill(entireProcessTree: true);
+            }
+
+            process.Dispose();
+            lock (log)
+            {
+                log.Dispose();
             }
         }
 

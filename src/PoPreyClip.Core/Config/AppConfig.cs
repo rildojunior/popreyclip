@@ -113,6 +113,9 @@ public sealed class AppConfig
         FilePrefix ??= "";
         Video ??= new VideoConfig();
         Audio ??= new AudioConfig();
+        Video.Capture = string.Equals(Video.Capture, VideoConfig.CaptureMonitor, StringComparison.OrdinalIgnoreCase)
+            ? VideoConfig.CaptureMonitor
+            : VideoConfig.CaptureGameWindow;
         Video.Fps = Math.Clamp(Video.Fps, 10, 240);
         Video.SegmentSeconds = Math.Clamp(Video.SegmentSeconds, 1, 10);
         Video.Quality = Math.Clamp(Video.Quality, 1, 51);
@@ -131,6 +134,15 @@ public sealed class AppConfig
 
 public sealed class VideoConfig
 {
+    public const string CaptureGameWindow = "game";
+    public const string CaptureMonitor = "monitor";
+
+    /// <summary>
+    /// "game": only the game's window (Windows Graphics Capture), so other windows, alt-tab and the desktop never
+    /// show up; the monitor is used when no game is open. "monitor": the whole monitor (Desktop Duplication).
+    /// </summary>
+    public string Capture { get; set; } = CaptureGameWindow;
+
     public int Fps { get; set; } = 60;
 
     /// <summary>Monitor index for Desktop Duplication capture (0 = primary output of the first GPU).</summary>

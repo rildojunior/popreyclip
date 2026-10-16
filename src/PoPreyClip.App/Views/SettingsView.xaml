@@ -221,6 +221,15 @@
                     <TextBlock Text="Mudanças de vídeo reiniciam a gravação." Style="{StaticResource HintText}" Margin="0,6,0,16" />
 
                     <DockPanel>
+                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding CaptureOptions}" SelectedItem="{Binding Capture}" DisplayMemberPath="Label" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="O que gravar" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Só a janela do jogo: outras janelas, alt-tab e a área de trabalho não aparecem no clipe. Sem jogo aberto, grava o monitor. Se um jogo sair preto ou parado, escolha Monitor inteiro." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+
+                    <DockPanel>
                         <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding EncoderOptions}" SelectedItem="{Binding Encoder}" DisplayMemberPath="Label" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Codificador" Style="{StaticResource LabelText}" />

@@ -245,6 +245,24 @@ public sealed class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<Option<int>> Monitors { get; }
 
+    public IReadOnlyList<Option<string>> CaptureOptions { get; } =
+    [
+        new(VideoConfig.CaptureGameWindow, "Só a janela do jogo (recomendado)"),
+        new(VideoConfig.CaptureMonitor, "Monitor inteiro"),
+    ];
+
+    public Option<string>? Capture
+    {
+        get => CaptureOptions.FirstOrDefault(o => o.Value == C.Video.Capture) ?? CaptureOptions[0];
+        set
+        {
+            if (value is not null)
+            {
+                _store.Update(c => c.Video.Capture = value.Value);
+            }
+        }
+    }
+
     public Option<int>? Fps
     {
         get => FpsOptions.FirstOrDefault(o => o.Value == C.Video.Fps) ?? FpsOptions[1];

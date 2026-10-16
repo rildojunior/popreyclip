@@ -83,6 +83,28 @@ internal static class Win32
     private static extern int GetWindowTextW(IntPtr hwnd, StringBuilder text, int maxCount);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWindowVisible(IntPtr hwnd);
+
+    /// <summary>True when the window is minimized.</summary>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsIconic(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr hwnd, uint command);
+
+    private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr GetShellWindow();
 
     [DllImport("user32.dll")]
@@ -160,6 +182,76 @@ internal static class Win32
 
         return window.Left <= info.Monitor.Left && window.Top <= info.Monitor.Top &&
                window.Right >= info.Monitor.Right && window.Bottom >= info.Monitor.Bottom;
+    }
+
+    /// <summary>
+    /// Main window of an app: the foreground window when it belongs to one of <paramref name="processIds"/>,
+    /// otherwise the largest visible, unowned top-level window of those processes. Zero when there is none.
+    /// </summary>
+    public static IntPtr FindMainWindow(IReadOnlySet<int> processIds)
+    {
+        var foreground = GetForegroundWindow();
+        if (IsCandidateWindow(foreground, processIds))
+        {
+            return foreground;
+        }
+
+        var best = IntPtr.Zero;
+        long bestArea = 0;
+        EnumWindows((hwnd, _) =>
+        {
+            if (IsCandidateWindow(hwnd, processIds) && GetWindowRect(hwnd, out var rect))
+            {
+                var area = (long)(rect.Right - rect.Left) * (rect.Bottom - rect.Top);
+                if (area > bestArea)
+                {
+                    best = hwnd;
+                    bestArea = area;
+                }
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return best;
+    }
+
+    private static bool IsCandidateWindow(IntPtr hwnd, IReadOnlySet<int> processIds)
+    {
+        const uint GwOwner = 4;
+        if (hwnd == IntPtr.Zero || !IsWindowVisible(hwnd) || GetWindow(hwnd, GwOwner) != IntPtr.Zero)
+        {
+            return false;
+        }
+
+        GetWindowThreadProcessId(hwnd, out var pid);
+        if (!processIds.Contains((int)pid) || !GetWindowRect(hwnd, out var rect))
+        {
+            return false;
+        }
+
+        // Skip tiny helper windows; splash screens are replaced later by the capture watchdog.
+        return rect.Right - rect.Left >= 320 && rect.Bottom - rect.Top >= 200;
+    }
+
+    /// <summary>A process and all of its descendants (games often draw from a child process of the launcher exe).</summary>
+    public static HashSet<int> ProcessTree(IReadOnlyList<ProcessInfo> processes, int rootId)
+    {
+        var tree = new HashSet<int> { rootId };
+        bool added;
+        do
+        {
+            added = false;
+            foreach (var process in processes)
+            {
+                if (!tree.Contains(process.ProcessId) && tree.Contains(process.ParentProcessId) && process.ProcessId != process.ParentProcessId)
+                {
+                    tree.Add(process.ProcessId);
+                    added = true;
+                }
+            }
+        }
+        while (added);
+        return tree;
     }
 
     /// <summary>Full image path of a process. Works for most elevated or protected game processes too.</summary>

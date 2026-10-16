@@ -6,13 +6,16 @@ namespace PoPreyClip.Recording;
 
 /// <summary>
 /// Named pipe that ffmpeg reads as a raw PCM input. Writes are queued so the pacer never blocks;
-/// audio produced before ffmpeg connects is discarded so the track starts in sync.
+/// audio produced before ffmpeg connects is discarded, and the wall-clock time of the first sample that
+/// does go in is kept: it is time zero of the audio track, which the video is aligned to.
 /// </summary>
 internal sealed class PipeAudioSink : IAudioSink, IDisposable
 {
     private readonly NamedPipeServerStream _pipe;
-    private readonly BlockingCollection<byte[]> _queue = new(boundedCapacity: 500);
+    // 30 s of 10 ms chunks (~6 MB), so a short hiccup of the disk or ffmpeg never drops audio.
+    private readonly BlockingCollection<byte[]> _queue = new(boundedCapacity: 3000);
     private readonly Thread _writer;
+    private readonly TaskCompletionSource<DateTimeOffset> _firstSample = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile bool _connected;
     private bool _warnedOverflow;
 
@@ -31,11 +34,20 @@ internal sealed class PipeAudioSink : IAudioSink, IDisposable
 
     public string PipePath => $@"\\.\pipe\{PipeName}";
 
+    /// <summary>Wall-clock time of the first sample ffmpeg received (the chunk just written was captured over the last few ms).</summary>
+    public Task<DateTimeOffset> FirstSample => _firstSample.Task;
+
     public void Write(ReadOnlySpan<byte> pcm)
     {
         if (!_connected || _queue.IsAddingCompleted)
         {
             return;
+        }
+
+        if (!_firstSample.Task.IsCompleted)
+        {
+            var chunk = TimeSpan.FromSeconds(pcm.Length / (double)(AudioFormat.SampleRate * AudioFormat.BytesPerFrame));
+            _firstSample.TrySetResult(DateTimeOffset.UtcNow - chunk);
         }
 
         if (!_queue.TryAdd(pcm.ToArray()) && !_warnedOverflow)
@@ -56,9 +68,9 @@ internal sealed class PipeAudioSink : IAudioSink, IDisposable
                 _pipe.Write(chunk);
             }
         }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException or OperationCanceledException)
         {
-            // ffmpeg closed the pipe (recording stopped).
+            // ffmpeg closed the pipe (recording stopped), or the pipe was closed while a write waited on a stalled ffmpeg.
         }
         finally
         {
@@ -68,6 +80,7 @@ internal sealed class PipeAudioSink : IAudioSink, IDisposable
 
     public void Dispose()
     {
+        _firstSample.TrySetCanceled();
         _queue.CompleteAdding();
         try
         {

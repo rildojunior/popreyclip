@@ -39,13 +39,14 @@ internal sealed class RecordingPipeline : IDisposable
 
     public ClipExporter Exporter { get; }
 
-    public static RecordingPipeline Start(AppConfig config, Func<AppConfig> live, GameDetector detector)
+    public static RecordingPipeline Start(AppConfig config, Func<AppConfig> live, GameDetector detector, VideoSource source)
     {
         var enabledSources = config.Audio.Sources.Where(s => s.Enabled).ToList();
         var runners = enabledSources.Select(s => new AudioSourceRunner(s, detector)).ToList();
         var tracks = AudioTrackPlan.Build(enabledSources, config.Audio);
         var sinks = new List<PipeAudioSink>();
         ReplayRecorder? recorder = null;
+        AudioPacer? pacer = null;
         try
         {
             foreach (var (track, index) in tracks.Select((t, i) => (t, i)))
@@ -59,22 +60,22 @@ internal sealed class RecordingPipeline : IDisposable
                 runner.Tick(processes);
             }
 
-            recorder = new ReplayRecorder(config, live);
-            recorder.Start(sinks);
-            var pacer = new AudioPacer(
+            pacer = new AudioPacer(
                 runners.Select(r => r.Fifo).ToList(),
                 runners.Select(r => r.Id).ToList(),
                 tracks,
                 sinks.Cast<IAudioSink>().ToList(),
                 live);
-            pacer.Start();
+            recorder = new ReplayRecorder(config, source, live);
+            recorder.Start(sinks, pacer.Start);
             var exporter = new ClipExporter(live, recorder, tracks.Select(t => t.Title).ToList());
             return new RecordingPipeline(runners, sinks, tracks, recorder, pacer, exporter);
         }
         catch
         {
-            recorder?.Dispose();
+            pacer?.Dispose();
             sinks.ForEach(s => s.Dispose());
+            recorder?.Dispose();
             runners.ForEach(r => r.Dispose());
             throw;
         }

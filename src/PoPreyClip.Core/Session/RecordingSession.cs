@@ -2,6 +2,7 @@ using System.Text.Json;
 using PoPreyClip.Audio;
 using PoPreyClip.Config;
 using PoPreyClip.Games;
+using PoPreyClip.Native;
 using PoPreyClip.Recording;
 
 namespace PoPreyClip.Session;
@@ -29,6 +30,16 @@ public sealed class RecordingSession : IDisposable
 
     /// <summary>Last seen value of the idle-mode setting, to react only when the user turns it on.</summary>
     private bool _autoRecordWasOn;
+
+    /// <summary>Game whose window is being filmed (0 when filming the monitor).</summary>
+    private int _sourceGamePid;
+
+    private long _pipelineStartedTick;
+
+    private int _restarting;
+
+    /// <summary>Games whose window could not be captured; they are filmed through the monitor instead.</summary>
+    private readonly HashSet<int> _windowCaptureFailed = [];
 
     public RecordingSession(ConfigStore store)
     {
@@ -131,13 +142,118 @@ public sealed class RecordingSession : IDisposable
             }
 
             _detector.Poll();
-            _pipeline = RecordingPipeline.Start(config, () => _store.Current, _detector);
+            var source = ChooseVideoSource(config);
+            _pipeline = RecordingPipeline.Start(config, () => _store.Current, _detector, source);
             _signature = Signature(config);
             _autoStarted = automatic;
-            Log.Info($"Gravação iniciada. Faixas: {string.Join(" | ", _pipeline.Tracks.Select((t, i) => $"{i}: {t.Title}"))}");
+            _sourceGamePid = source.IsWindow ? _detector.CurrentGame?.ProcessId ?? 0 : 0;
+            _pipelineStartedTick = Environment.TickCount64;
+            Log.Info($"Gravação iniciada. Vídeo: {source.Description}. Faixas: {string.Join(" | ", _pipeline.Tracks.Select((t, i) => $"{i}: {t.Title}"))}");
         }
 
         RecordingChanged?.Invoke(true);
+    }
+
+    /// <summary>The game's window when there is a game and window capture is on and works; otherwise the monitor.</summary>
+    private VideoSource ChooseVideoSource(AppConfig config)
+    {
+        var monitor = VideoSource.Monitor(config.Video.MonitorIndex);
+        var game = _detector.CurrentGame;
+        if (game is null || !CanFilmWindow(config, game))
+        {
+            return monitor;
+        }
+
+        var window = FindGameWindow(game);
+        return window == IntPtr.Zero ? monitor : VideoSource.ForWindow(window, game.DisplayName);
+    }
+
+    private bool CanFilmWindow(AppConfig config, DetectedGame game) =>
+        config.Video.Capture == VideoConfig.CaptureGameWindow
+        && !_windowCaptureFailed.Contains(game.ProcessId)
+        && WindowCaptureSupport.IsAvailable(config.FfmpegExe);
+
+    private static IntPtr FindGameWindow(DetectedGame game) =>
+        Win32.FindMainWindow(Win32.ProcessTree(Win32.GetProcesses(), game.ProcessId));
+
+    /// <summary>
+    /// Watchdog for the video source, run every two seconds. Returns why the recording must restart with another
+    /// source, or null when the current one is fine: the game's window was replaced (splash screen → game),
+    /// the game closed or changed, a game opened while filming the monitor, or the window stopped sending frames.
+    /// </summary>
+    private string? CheckVideoSource(RecordingPipeline pipeline)
+    {
+        if (Environment.TickCount64 - _pipelineStartedTick < 5000)
+        {
+            return null;
+        }
+
+        var config = _store.Current;
+        var game = _detector.CurrentGame;
+        var source = pipeline.Recorder.Source;
+        if (!source.IsWindow)
+        {
+            return game is not null && CanFilmWindow(config, game) && FindGameWindow(game) != IntPtr.Zero
+                ? $"{game.DisplayName} aberto: passando a gravar só a janela do jogo."
+                : null;
+        }
+
+        if (game is null)
+        {
+            // In idle mode the recording is about to stop anyway.
+            return _autoStarted ? null : "O jogo fechou: voltando a gravar o monitor.";
+        }
+
+        if (game.ProcessId != _sourceGamePid)
+        {
+            return $"{game.DisplayName} aberto: trocando a captura para a janela dele.";
+        }
+
+        if (!Win32.IsWindow(source.Window))
+        {
+            return $"A janela de {game.DisplayName} mudou: reconectando a captura.";
+        }
+
+        // The player is looking at the game but no image arrives: this game can't be filmed through its window.
+        if (Win32.GetForegroundWindow() == source.Window && !Win32.IsIconic(source.Window) && pipeline.Recorder.SecondsSinceLastFrame > 12)
+        {
+            _windowCaptureFailed.Add(game.ProcessId);
+            return $"A janela de {game.DisplayName} não está mandando imagem. Gravando o monitor no lugar.";
+        }
+
+        return null;
+    }
+
+    /// <summary>Stops and starts the recording off the calling thread, keeping whether it was started automatically.</summary>
+    private void Restart(string reason)
+    {
+        if (Interlocked.Exchange(ref _restarting, 1) == 1)
+        {
+            return;
+        }
+
+        Log.Info(reason);
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var wasAutomatic = _autoStarted;
+                StopCore();
+                if (!_disposed)
+                {
+                    StartCore(wasAutomatic);
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or System.Runtime.InteropServices.COMException or System.ComponentModel.Win32Exception or ObjectDisposedException)
+            {
+                Log.Error(ex.Message);
+                Failed?.Invoke(ex.Message);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _restarting, 0);
+            }
+        });
     }
 
     private void StopCore()
@@ -249,21 +365,7 @@ public sealed class RecordingSession : IDisposable
             return;
         }
 
-        Log.Info("A configuração de gravação mudou. Reiniciando a gravação para aplicar...");
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                var wasAutomatic = _autoStarted;
-                StopCore();
-                StartCore(wasAutomatic);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or IOException or System.Runtime.InteropServices.COMException)
-            {
-                Log.Error(ex.Message);
-                Failed?.Invoke(ex.Message);
-            }
-        });
+        Restart("A configuração de gravação mudou. Reiniciando a gravação para aplicar...");
     }
 
     private void MonitorTick()
@@ -274,9 +376,10 @@ public sealed class RecordingSession : IDisposable
         }
 
         string? failure = null;
+        string? restart = null;
         try
         {
-            if (_disposed)
+            if (_disposed || Volatile.Read(ref _restarting) == 1)
             {
                 return;
             }
@@ -284,13 +387,34 @@ public sealed class RecordingSession : IDisposable
             _detector.Poll();
             if (_pipeline is { } pipeline)
             {
-                if (pipeline.Recorder.HasExited)
+                var source = pipeline.Recorder.Source;
+                if (pipeline.Recorder.HasExited && source.IsWindow && !Win32.IsWindow(source.Window))
+                {
+                    // The filmed window closed, so the video process ended normally. Film the game's new window, or the
+                    // monitor if the game closed (in idle mode the recording is about to stop anyway).
+                    var game = _detector.CurrentGame;
+                    restart = game is not null ? $"A janela de {game.DisplayName} mudou: reconectando a captura."
+                        : _autoStarted ? null
+                        : "O jogo fechou: voltando a gravar o monitor.";
+                }
+                else if (pipeline.Recorder.HasExited && source.IsWindow && _detector.CurrentGame is { } game)
+                {
+                    // The window is still there but could not be filmed: use the monitor for this game from now on.
+                    _windowCaptureFailed.Add(game.ProcessId);
+                    Log.Warn($"A captura da janela falhou: {pipeline.Recorder.ReadFfmpegLogTail()}");
+                    restart = $"A captura da janela de {game.DisplayName} parou. Gravando o monitor no lugar.";
+                }
+                else if (pipeline.Recorder.HasExited)
                 {
                     failure = $"O FFmpeg parou (código {pipeline.Recorder.ExitCode}). {pipeline.Recorder.ReadFfmpegLogTail()}";
                 }
                 else
                 {
-                    pipeline.Tick();
+                    restart = CheckVideoSource(pipeline);
+                    if (restart is null)
+                    {
+                        pipeline.Tick();
+                    }
                 }
             }
         }
@@ -301,6 +425,11 @@ public sealed class RecordingSession : IDisposable
         finally
         {
             Monitor.Exit(_gate);
+        }
+
+        if (restart is not null)
+        {
+            Restart(restart);
         }
 
         if (failure is not null)

@@ -33,6 +33,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 ## ✨ Funcionalidades
 
 - 🎬 **Replay instantâneo:** enquanto você joga, o PoPreyClip grava em segundo plano e, quando você aperta **F8**, salva os últimos 30 segundos (a duração é configurável).
+- 🎯 **Grava só o jogo:** filma a janela do jogo, não a tela inteira. Alt-tab, outras janelas e a área de trabalho não aparecem no clipe, e o som continua sincronizado mesmo se o jogo for minimizado.
 - 💤 **Modo espera:** sem jogo aberto, o app fica parado e não gasta recursos. A gravação liga sozinha quando o jogo abre e desliga quando ele fecha.
 - 👀 **Jogos e apps vigiados:** escolha qualquer janela (um jogo que não foi detectado, um emulador, um programa) para ser tratada como jogo assim que abrir.
 - 📁 **Uma pasta por jogo:** o jogo aberto é detectado sozinho e cada clipe vai para `Clips\<Nome do Jogo>\`.
@@ -62,7 +63,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 ### Requisitos
 
 - Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits.
-- [FFmpeg](https://ffmpeg.org/), que é gratuito. O passo 1 mostra como instalar.
+- [FFmpeg](https://ffmpeg.org/) 8 ou mais novo, que é gratuito. O passo 1 mostra como instalar. Se você já tem um FFmpeg antigo, atualize com `winget upgrade Gyan.FFmpeg`.
 - Placa de vídeo NVIDIA é recomendada, mas não obrigatória.
 
 ### Passo 1: instalar o FFmpeg
@@ -139,6 +140,7 @@ Na tela **Configurações** você troca:
 - a pasta raiz dos clipes e capturas;
 - os atalhos (clique no campo e aperte as teclas);
 - a duração do clipe (de 5 segundos a 5 minutos);
+- o que gravar: **só a janela do jogo** (padrão) ou o **monitor inteiro**;
 - o codificador, os quadros por segundo, o monitor e a qualidade do vídeo;
 - os sons de aviso e o que acontece ao fechar a janela;
 - **Iniciar com o Windows**, em **Comportamento**, para o app abrir sozinho ao ligar o PC.
@@ -179,9 +181,11 @@ Instale o FFmpeg (veja o [passo 1](#passo-1-instalar-o-ffmpeg)) e abra o PoPreyC
 </details>
 
 <details>
-<summary><b>O clipe saiu com a tela preta ou sem o jogo</b></summary>
+<summary><b>O clipe saiu com a tela preta, parada ou sem o jogo</b></summary>
 
-Alguns jogos em **tela cheia exclusiva** bloqueiam a captura. Mude o modo de vídeo do jogo para **Janela sem borda** (*Borderless* ou *Tela cheia em janela*).
+- Atualize o FFmpeg: `winget upgrade Gyan.FFmpeg`. Gravar só a janela do jogo precisa do FFmpeg 8 ou mais novo; com um mais antigo, o PoPreyClip grava o monitor inteiro.
+- Se um jogo não manda imagem pela janela, o PoPreyClip percebe sozinho em alguns segundos e passa a gravar o monitor. Você também pode escolher **Monitor inteiro** em **Configurações → Vídeo → O que gravar**.
+- Alguns jogos em **tela cheia exclusiva** bloqueiam a captura. Mude o modo de vídeo do jogo para **Janela sem borda** (*Borderless* ou *Tela cheia em janela*).
 </details>
 
 <details>
@@ -263,10 +267,10 @@ O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml
 
 ### Como funciona
 
-1. O FFmpeg captura a tela (Desktop Duplication) e guarda trechos curtos num buffer temporário.
+1. Um processo do FFmpeg filma a janela do jogo (Windows Graphics Capture) ou o monitor (Desktop Duplication), com prioridade alta na placa de vídeo, e guarda trechos curtos num buffer temporário.
 2. Cada fonte de áudio é capturada separada pelo Windows (WASAPI com captura por processo).
-3. Um mixer alinha as fontes, aplica volume, reforço e limitador e manda cada faixa ao FFmpeg.
-4. Ao salvar, os trechos recentes são juntados sem recodificar e viram um MP4.
+3. Um mixer alinha as fontes, aplica volume, reforço e limitador e manda cada faixa a um segundo processo do FFmpeg, só de áudio. Assim, se a imagem travar, o som não trava junto.
+4. Vídeo e áudio usam o relógio do Windows como base comum. Ao salvar, os trechos recentes são juntados sem recodificar e viram um MP4 sincronizado.
 
 ## 🔒 Privacidade
 

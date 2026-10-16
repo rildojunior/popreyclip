@@ -21,18 +21,38 @@ public class RecordingTests
     }
 
     [Fact]
-    public void Ffmpeg_arguments_map_one_input_per_audio_track()
+    public void Audio_process_maps_one_input_per_track_and_has_no_video()
     {
         var config = new AppConfig();
         config.Normalize();
 
-        var args = ReplayRecorder.BuildArguments(config, [@"\\.\pipe\a", @"\\.\pipe\b"], "h264_nvenc");
+        var args = ReplayRecorder.BuildAudioArguments(config, [@"\\.\pipe\a", @"\\.\pipe\b"]);
 
         Assert.Contains(@"\\.\pipe\a", args);
+        Assert.Contains("0:a", args);
         Assert.Contains("1:a", args);
-        Assert.Contains("2:a", args);
         Assert.Contains("segment", args);
+        Assert.Contains("a%06d.ts", args);
+        Assert.DoesNotContain(args, a => a.Contains("ddagrab") || a.Contains("gfxcapture"));
+    }
+
+    [Fact]
+    public void Video_process_uses_wall_clock_shifted_to_the_first_audio_sample()
+    {
+        var config = new AppConfig();
+        config.Normalize();
+        var timeZero = DateTimeOffset.FromUnixTimeMilliseconds(1_760_000_000_250);
+
+        var args = ReplayRecorder.BuildVideoArguments(config, "h264_nvenc", VideoSource.Monitor(0), timeZero);
+
+        Assert.Equal("1", args[args.IndexOf("-use_wallclock_as_timestamps") + 1]);
+        Assert.Contains("-copyts", args);
+        Assert.Equal("-1760000000.250", args[args.IndexOf("-itsoffset") + 1]);
+        Assert.True(args.IndexOf("-itsoffset") < args.IndexOf("-i"), "the offset must apply to the capture input");
+        Assert.Equal("cfr", args[args.IndexOf("-fps_mode") + 1]);
         Assert.Contains("h264_nvenc", args);
+        Assert.Contains("v%06d.ts", args);
+        Assert.DoesNotContain(args, a => a.Contains("pipe", StringComparison.Ordinal) && a.StartsWith(@"\\", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -41,7 +61,7 @@ public class RecordingTests
         var config = new AppConfig();
         config.Normalize();
 
-        var args = ReplayRecorder.BuildArguments(config, []);
+        var args = ReplayRecorder.BuildVideoArguments(config, null, VideoSource.Monitor(0), DateTimeOffset.UtcNow);
 
         Assert.Equal("auto", config.Video.Encoder);
         Assert.Contains("libx264", args);
