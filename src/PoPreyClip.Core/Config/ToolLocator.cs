@@ -1,12 +1,16 @@
 namespace PoPreyClip.Config;
 
 /// <summary>
-/// Finds ffmpeg/ffprobe even when the current PATH is stale (for example a terminal or Explorer
-/// window opened before FFmpeg was installed with winget).
+/// Finds ffmpeg/ffprobe: PoPreyClip's own copy first (kept up to date by <see cref="Updates.FfmpegManager"/>),
+/// then the PC's PATH and winget folders, even when the current PATH is stale (for example a terminal or
+/// Explorer window opened before FFmpeg was installed with winget).
 /// </summary>
 internal static class ToolLocator
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> Cache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Forgets resolved paths, e.g. after a new FFmpeg version was installed.</summary>
+    public static void Reset() => Cache.Clear();
 
     public static string Resolve(string configured)
     {
@@ -54,6 +58,11 @@ internal static class ToolLocator
 
     private static IEnumerable<string> CandidateDirectories()
     {
+        foreach (var managed in Updates.FfmpegManager.BinDirectories())
+        {
+            yield return managed;
+        }
+
         yield return AppContext.BaseDirectory;
 
         var paths = new[]

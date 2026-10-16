@@ -413,6 +413,11 @@
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />
+                    <StackPanel Style="{StaticResource RowLabel}">
+                        <TextBlock Text="{Binding Updates.FfmpegText}" Style="{StaticResource LabelText}" />
+                        <TextBlock Text="{Binding Updates.FfmpegStatus}" Style="{StaticResource HintText}" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Divider}" />
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Command="{Binding Updates.OpenChangelogCommand}">

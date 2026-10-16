@@ -52,6 +52,7 @@ public sealed class RecordingSession : IDisposable
             OnGameChanged(game);
         };
         _store.Changed += OnConfigChanged;
+        PoPreyClip.Updates.FfmpegManager.Installed += OnFfmpegInstalled;
         ReplayRecorder.CleanupStaleBuffers();
         _monitor = new Timer(_ => MonitorTick(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
@@ -112,6 +113,15 @@ public sealed class RecordingSession : IDisposable
         }
     }
 
+    /// <summary>A game opened while FFmpeg was still downloading: start now that it is ready.</summary>
+    private void OnFfmpegInstalled(Version version)
+    {
+        if (!IsRecording && _detector.CurrentGame is { } game)
+        {
+            OnGameChanged(game);
+        }
+    }
+
     private void StartAutomatically()
     {
         try
@@ -138,7 +148,9 @@ public sealed class RecordingSession : IDisposable
             var config = _store.Current;
             if (!Ffmpeg.IsAvailable(config.FfmpegExe) || !Ffmpeg.IsAvailable(config.FfprobeExe))
             {
-                throw new InvalidOperationException("FFmpeg não foi encontrado. Instale com: winget install Gyan.FFmpeg");
+                throw new InvalidOperationException(PoPreyClip.Updates.FfmpegManager.Progress is { } progress
+                    ? $"O FFmpeg ainda está sendo baixado ({progress:P0}). Com um jogo aberto, a gravação começa sozinha quando terminar."
+                    : "O FFmpeg não foi encontrado. O PoPreyClip baixa ele sozinho: confira a internet e clique em Procurar agora, em Configurações → Atualizações.");
             }
 
             _detector.Poll();
@@ -458,6 +470,7 @@ public sealed class RecordingSession : IDisposable
         }
 
         _store.Changed -= OnConfigChanged;
+        PoPreyClip.Updates.FfmpegManager.Installed -= OnFfmpegInstalled;
         _monitor.Dispose();
         Stop();
     }

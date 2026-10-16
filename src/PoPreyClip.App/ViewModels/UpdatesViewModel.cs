@@ -43,8 +43,52 @@ public sealed class UpdatesViewModel : ObservableObject
             if (_store.Current.AutoCheckUpdates)
             {
                 await CheckAsync(manual: false);
+                await UpdateFfmpegAsync(manual: false);
             }
         }, Dispatcher.CurrentDispatcher);
+
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        FfmpegManager.Changed += () => dispatcher.BeginInvoke(() =>
+        {
+            OnPropertyChanged(nameof(FfmpegText));
+            OnPropertyChanged(nameof(FfmpegStatus));
+        });
+    }
+
+    /// <summary>Which FFmpeg the recordings use.</summary>
+    public string FfmpegText => FfmpegManager.InstalledVersion is { } version
+        ? $"FFmpeg {version.ToString(3)}"
+        : File.Exists(_store.Current.FfmpegExe) ? "FFmpeg instalado no PC" : "FFmpeg não encontrado";
+
+    public string FfmpegStatus => FfmpegManager.Progress is { } progress
+        ? $"Baixando o FFmpeg... {progress:P0}"
+        : _ffmpegStatus ?? (FfmpegManager.InstalledVersion is null
+            ? "O PoPreyClip baixa o FFmpeg (cerca de 110 MB) e passa a mantê-lo atualizado sozinho."
+            : "Usado para gravar. É atualizado sozinho junto com o app.");
+
+    private string? _ffmpegStatus;
+
+    /// <summary>
+    /// Downloads FFmpeg when PoPreyClip has no copy of its own yet, or a newer version exists. Runs in the
+    /// background; a failure (offline) is retried at the next check.
+    /// </summary>
+    private async Task UpdateFfmpegAsync(bool manual)
+    {
+        try
+        {
+            var installed = await Task.Run(() => FfmpegManager.UpdateAsync());
+            _ffmpegStatus = installed is not null ? $"FFmpeg atualizado para a versão {installed.ToString(3)}." : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or IOException or InvalidDataException or UnauthorizedAccessException or KeyNotFoundException or System.ComponentModel.Win32Exception)
+        {
+            Log.Warn($"Não foi possível baixar o FFmpeg: {ex.Message}");
+            _ffmpegStatus = manual || FfmpegManager.InstalledVersion is null
+                ? "Não foi possível baixar o FFmpeg agora. O PoPreyClip tenta de novo mais tarde."
+                : null;
+        }
+
+        OnPropertyChanged(nameof(FfmpegText));
+        OnPropertyChanged(nameof(FfmpegStatus));
     }
 
     /// <summary>Raised when a newer version is found, so the tray can show a notification.</summary>
@@ -129,10 +173,29 @@ public sealed class UpdatesViewModel : ObservableObject
         }
     }
 
-    public void Start() => _timer.Start();
+    public void Start()
+    {
+        _timer.Start();
+
+        // Without its own FFmpeg the app can't record well (or at all): get it right away, even with automatic
+        // update checks turned off.
+        if (FfmpegManager.InstalledVersion is null)
+        {
+            _ = UpdateFfmpegAsync(manual: false);
+        }
+        else
+        {
+            FfmpegManager.RemoveOldVersions();
+        }
+    }
 
     public async Task CheckAsync(bool manual)
     {
+        if (manual)
+        {
+            _ = UpdateFfmpegAsync(manual: true);
+        }
+
         if (IsBusy)
         {
             return;

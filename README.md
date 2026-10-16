@@ -63,26 +63,10 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 ### Requisitos
 
 - Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits.
-- [FFmpeg](https://ffmpeg.org/) 8 ou mais novo, que é gratuito. O passo 1 mostra como instalar. Se você já tem um FFmpeg antigo, atualize com `winget upgrade Gyan.FFmpeg`.
+- Internet na primeira vez que abrir, para o app baixar o FFmpeg (veja o passo 2).
 - Placa de vídeo NVIDIA é recomendada, mas não obrigatória.
 
-### Passo 1: instalar o FFmpeg
-
-O PoPreyClip usa o FFmpeg para gravar a tela. Abra o **PowerShell** ou o **Prompt de Comando** e rode:
-
-```powershell
-winget install Gyan.FFmpeg
-```
-
-Feche e abra o PowerShell de novo e confira se instalou:
-
-```powershell
-ffmpeg -version
-```
-
-> Se o comando `winget` não existir, atualize o **Instalador de Aplicativo** pela Microsoft Store.
-
-### Passo 2: baixar o PoPreyClip
+### Passo 1: baixar o PoPreyClip
 
 1. Abra a página de [**Releases**](../../releases/latest).
 2. Baixe o arquivo **`PoPreyClip.exe`**. O outro arquivo, `PoPreyClip.exe.sha256`, é usado pela atualização automática e não precisa ser baixado.
@@ -90,9 +74,11 @@ ffmpeg -version
 
 Não precisa instalar mais nada: o `.exe` já traz tudo o que o app usa, inclusive o .NET.
 
-### Passo 3: abrir
+### Passo 2: abrir
 
 Dê dois cliques no `PoPreyClip.exe`. O app abre em espera e começa a gravar sozinho quando você abrir um jogo.
+
+Na primeira vez, ele baixa sozinho o [FFmpeg](https://ffmpeg.org/), o programa gratuito que faz a gravação (cerca de 110 MB, leva alguns segundos). Depois, o PoPreyClip mantém o FFmpeg atualizado junto com o app. Você não precisa instalar nada. O andamento aparece em **Configurações → Atualizações**.
 
 > **"O Windows protegeu o computador"?** O aviso aparece porque o app não tem assinatura digital paga. Clique em **Mais informações** e depois em **Executar assim mesmo**. O código é aberto e está todo neste repositório.
 
@@ -175,15 +161,14 @@ Todos podem ser trocados em **Configurações → Teclas de atalho**.
 ## ❓ Problemas comuns
 
 <details>
-<summary><b>Aparece "FFmpeg não foi encontrado"</b></summary>
+<summary><b>Aparece "O FFmpeg não foi encontrado"</b></summary>
 
-Instale o FFmpeg (veja o [passo 1](#passo-1-instalar-o-ffmpeg)) e abra o PoPreyClip de novo. Se já instalou, reinicie o PC para o Windows atualizar o caminho dos programas.
+O PoPreyClip baixa o FFmpeg sozinho na primeira vez que abre. Se aparecer essa mensagem, confira a internet e clique em **Procurar agora**, em **Configurações → Atualizações**. O download pode estar bloqueado por um antivírus ou firewall.
 </details>
 
 <details>
 <summary><b>O clipe saiu com a tela preta, parada ou sem o jogo</b></summary>
 
-- Atualize o FFmpeg: `winget upgrade Gyan.FFmpeg`. Gravar só a janela do jogo precisa do FFmpeg 8 ou mais novo; com um mais antigo, o PoPreyClip grava o monitor inteiro.
 - Se um jogo não manda imagem pela janela, o PoPreyClip percebe sozinho em alguns segundos e passa a gravar o monitor. Você também pode escolher **Monitor inteiro** em **Configurações → Vídeo → O que gravar**.
 - Alguns jogos em **tela cheia exclusiva** bloqueiam a captura. Mude o modo de vídeo do jogo para **Janela sem borda** (*Borderless* ou *Tela cheia em janela*).
 </details>
@@ -240,17 +225,19 @@ dotnet test PoPreyClip.slnx
 
 ### Lançar uma nova versão
 
-As versões saem sozinhas. A cada `git push` no branch `main`, o [GitHub Actions](../../actions) faz o seguinte:
+As mudanças vão se acumulando no branch `main` e só viram versão quando você mandar. Assim quem usa o app não recebe várias atualizações pequenas no mesmo dia.
 
-1. Compila o app e roda os testes. Se algum falhar, nada é publicado.
-2. Soma 1 ao número da última versão (por exemplo, 1.0.2 vira 1.0.3).
-3. Gera o `PoPreyClip.exe` e o arquivo de verificação `PoPreyClip.exe.sha256`.
-4. Publica a versão em **Releases**, com a lista de commits nas notas.
+- **A cada `git push`**, o [GitHub Actions](../../actions) compila o app e roda os testes, mas não publica nada.
+- **Para lançar**, vá em [Actions → Release](../../actions/workflows/release.yml), clique em **Run workflow** e confirme. Pelo terminal, o comando é `gh workflow run release.yml`. O Actions então:
+  1. compila e roda os testes (se algum falhar, nada é publicado);
+  2. soma 1 ao número da última versão (por exemplo, 1.0.5 vira 1.0.6);
+  3. gera o `PoPreyClip.exe` e o arquivo de verificação `PoPreyClip.exe.sha256`;
+  4. publica a versão em **Releases**. As notas listam todas as mudanças desde a versão anterior, com os tópicos da descrição de cada commit.
 
 Quem já usa o app recebe o aviso de atualização.
 
-- **Commits só de documentação** (arquivos `.md`, pasta `docs/`, logo) não geram versão.
-- **Para enviar sem gerar versão**, escreva `[skip ci]` na mensagem do commit.
+- **Para só testar o executável**, desmarque **Publicar** ao rodar: o Actions gera uma cópia para baixar, sem lançar a versão.
+- **Commits marcados com `[skip ci]`** não são compilados e ficam fora das notas.
 - **Para pular para 1.1.0 ou 2.0.0**, mude `<Version>` em `src/PoPreyClip.App/PoPreyClip.App.csproj` para o número desejado.
 
 O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml).
@@ -282,4 +269,4 @@ As configurações ficam em `%APPDATA%\PoPreyClip\config.json` e os logs em `%LO
 
 Distribuído sob a licença [MIT](LICENSE). Você pode usar, modificar e compartilhar à vontade.
 
-O PoPreyClip usa o [FFmpeg](https://ffmpeg.org/), que é instalado separadamente e tem licença própria. Este projeto não tem relação com o Medal, a NVIDIA ou os jogos citados. Os nomes de jogos aparecem só como exemplo.
+O PoPreyClip usa o [FFmpeg](https://ffmpeg.org/), baixado pelo próprio app a partir dos [builds do Gyan](https://github.com/GyanD/codexffmpeg), que tem licença própria. Este projeto não tem relação com o Medal, a NVIDIA ou os jogos citados. Os nomes de jogos aparecem só como exemplo.
