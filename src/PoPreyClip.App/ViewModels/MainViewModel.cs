@@ -436,7 +436,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var config = _store.Current;
         if (config.PlaySoundOnScreenshot)
         {
-            _sounds.PlayShutter(config.ClipSoundVolume);
+            _sounds.PlayScreenshot(config);
         }
 
         if (config.CopyScreenshotToClipboard)

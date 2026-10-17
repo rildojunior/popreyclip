@@ -1,5 +1,6 @@
 using System.Windows;
 using PoPreyClip.App.ViewModels;
+using PoPreyClip.Config;
 using Forms = System.Windows.Forms;
 
 namespace PoPreyClip.App;
@@ -53,20 +54,10 @@ internal sealed class TrayIcon : IDisposable
                 _icon.ShowBalloonTip(4000, "Nova versão do PoPreyClip", $"A versão {update.Version.ToString(3)} está disponível. Abra o app para atualizar.", Forms.ToolTipIcon.None);
             }
         };
-        viewModel.ScreenshotSaved += info =>
-        {
-            if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
-            {
-                _icon.ShowBalloonTip(2000, "Captura de tela salva", $"{info.Game}\n{System.IO.Path.GetFileName(info.Path)}", Forms.ToolTipIcon.None);
-            }
-        };
-        viewModel.ClipSaved += info =>
-        {
-            if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
-            {
-                _icon.ShowBalloonTip(3000, "Clipe salvo", $"{info.Game}\n{System.IO.Path.GetFileName(info.Path)}", Forms.ToolTipIcon.None);
-            }
-        };
+        viewModel.ScreenshotSaved += info => AnnounceSaved("Captura de tela salva", info.Game);
+        viewModel.ClipSaved += info => AnnounceSaved("Clipe salvo", $"{info.Game} · {viewModel.Settings.ClipSecondsText}");
+        viewModel.Settings.NoticeTestRequested += () =>
+            Announce(viewModel.Settings.SavedNotice.Value, "Clipe salvo", "Assim o aviso aparece durante o jogo");
         window.HiddenToTray += () =>
         {
             if (!_hintShown)
@@ -75,6 +66,31 @@ internal sealed class TrayIcon : IDisposable
                 _icon.ShowBalloonTip(3000, "PoPreyClip continua aberto", "A gravação segue na bandeja. Clique duas vezes no ícone para abrir.", Forms.ToolTipIcon.None);
             }
         };
+    }
+
+    /// <summary>
+    /// Announces a saved file in the style chosen in the settings. Skipped while the PoPreyClip window is in front,
+    /// because the window already shows its own message.
+    /// </summary>
+    private void AnnounceSaved(string title, string detail)
+    {
+        if (!_window.IsActive)
+        {
+            Announce(_viewModel.Settings.SavedNotice.Value, title, detail);
+        }
+    }
+
+    private void Announce(string style, string title, string detail)
+    {
+        switch (style)
+        {
+            case AppConfig.NoticeOverlay:
+                OverlayNotice.Notify(title, detail);
+                break;
+            case AppConfig.NoticeWindows:
+                _icon.ShowBalloonTip(3000, title, detail, Forms.ToolTipIcon.None);
+                break;
+        }
     }
 
     public void Dispose()

@@ -41,7 +41,8 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🎚️ **Mixer de áudio:** volume de 0 a 200%, reforço de até +30 dB para microfones baixos e um limitador que evita distorção.
 - 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, abrir a pasta ou excluir.
-- ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo e podem ser trocados nas configurações.
+- ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift ou Ctrl segurados, e podem ser trocados nas configurações.
+- 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
 - 🚀 **Inicia com o Windows (opcional):** abre sozinho ao ligar o PC, já escondido na bandeja.
 - 🔄 **Atualização automática:** avisa quando sai uma versão nova e se atualiza com um clique.
@@ -90,7 +91,7 @@ Dica: clique com o botão direito no `.exe`, escolha **Enviar para → Área de 
 
 1. Abra o PoPreyClip. Ele fica **em espera** até um jogo abrir.
 2. Abra o jogo. A gravação liga sozinha e a bolinha vermelha na barra lateral acende.
-3. Aconteceu algo bom? Aperte **F8**. Os últimos 30 segundos são salvos e um som confirma.
+3. Aconteceu algo bom? Aperte **F8**. Os últimos 30 segundos são salvos, e um som curto e um aviso verde no canto da tela confirmam.
 4. Ao fechar o jogo, a gravação desliga sozinha.
 
 Prefere gravar o tempo todo? Desligue **Gravar só quando um jogo estiver aberto** em **Configurações → Comportamento**. Os botões **Iniciar gravação** e **Parar gravação** também funcionam a qualquer momento.
@@ -128,7 +129,9 @@ Na tela **Configurações** você troca:
 - a duração do clipe (de 5 segundos a 5 minutos);
 - o que gravar: **só a janela do jogo** (padrão) ou o **monitor inteiro**;
 - o codificador, os quadros por segundo, o monitor e a qualidade do vídeo;
-- os sons de aviso e o que acontece ao fechar a janela;
+- o aviso na tela (o do PoPreyClip, a notificação do Windows ou nenhum), em **Aviso na tela**;
+- o som do clipe e o som da captura de tela, com botão **Ouvir** para testar;
+- o que acontece ao fechar a janela;
 - **Iniciar com o Windows**, em **Comportamento**, para o app abrir sozinho ao ligar o PC.
 
 ### Sair de verdade
@@ -183,6 +186,8 @@ O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo n�
 <summary><b>O atalho não funciona</b></summary>
 
 Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Teclas de atalho**.
+
+Segurar Shift ou Ctrl junto (para correr ou agachar, por exemplo) não atrapalha. Alt e a tecla Windows sim, porque o Windows usa essas combinações para outras coisas.
 </details>
 
 <details>

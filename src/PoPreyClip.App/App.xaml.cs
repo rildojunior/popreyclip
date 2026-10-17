@@ -59,7 +59,7 @@ public partial class App : Application
         {
             // Test helper: writes every built-in notification sound as a WAV file.
             Directory.CreateDirectory(soundDirectory);
-            foreach (var id in ClipSoundPlayer.BuiltIn.Select(s => s.Id).Append(ClipSoundPlayer.ShutterId))
+            foreach (var id in ClipSoundPlayer.BuiltIn.Concat(ClipSoundPlayer.ScreenshotSounds).Select(s => s.Id))
             {
                 File.WriteAllBytes(Path.Combine(soundDirectory, id + ".wav"), ClipSoundPlayer.ToWav(ClipSoundPlayer.Synthesize(id)));
             }

@@ -547,20 +547,28 @@
         </Setter>
     </Style>
 
-    <!-- Slim scrollbar -->
+    <!-- Scrollbar: thin enough to stay discreet, wide enough to grab; lights up under the mouse -->
     <Style x:Key="ScrollThumb" TargetType="Thumb">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border CornerRadius="4" Background="{StaticResource Surface3Brush}" />
+                    <Border x:Name="Bar" CornerRadius="5" Background="{StaticResource Surface3Brush}" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource TextFaintBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource TextMutedBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
     <Style TargetType="ScrollBar">
-        <Setter Property="Width" Value="8" />
-        <Setter Property="MinWidth" Value="8" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
@@ -573,7 +581,7 @@
                             <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource SliderRepeatButton}" />
                         </Track.IncreaseRepeatButton>
                         <Track.Thumb>
-                            <Thumb Style="{StaticResource ScrollThumb}" Margin="1,0" />
+                            <Thumb Style="{StaticResource ScrollThumb}" Margin="1,2" />
                         </Track.Thumb>
                     </Track>
                 </ControlTemplate>
@@ -582,8 +590,8 @@
         <Style.Triggers>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto" />
-                <Setter Property="Height" Value="8" />
-                <Setter Property="MinHeight" Value="8" />
+                <Setter Property="Height" Value="12" />
+                <Setter Property="MinHeight" Value="12" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
@@ -595,7 +603,7 @@
                                     <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource SliderRepeatButton}" />
                                 </Track.IncreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb Style="{StaticResource ScrollThumb}" Margin="0,1" />
+                                    <Thumb Style="{StaticResource ScrollThumb}" Margin="2,1" />
                                 </Track.Thumb>
                             </Track>
                         </ControlTemplate>

@@ -6,12 +6,14 @@ namespace PoPreyClip.App;
 public sealed record ClipSoundInfo(string Id, string Label);
 
 /// <summary>
-/// Plays the "clip saved" notification. The built-in sounds are synthesized once (soft bell-like tones)
-/// and cached as WAV files; a custom .wav or .mp3 can be used instead.
+/// Plays the "clip saved" and "screenshot saved" sounds. The built-in sounds are synthesized once and cached as
+/// WAV files; a custom .wav or .mp3 can be used for the clip sound instead.
 /// </summary>
 public sealed class ClipSoundPlayer
 {
     public const string CustomId = "custom";
+    public const string DefaultClipId = "duo";
+    public const string DefaultScreenshotId = "camera-soft";
     public const string ShutterId = "shutter";
     private const int SampleRate = 44_100;
     private const int Version = 3;
@@ -22,26 +24,41 @@ public sealed class ClipSoundPlayer
     // Kept as a field so playback is not cut short by garbage collection.
     private readonly MediaPlayer _player = new();
 
+    /// <summary>Sounds offered for a saved clip.</summary>
     public static IReadOnlyList<ClipSoundInfo> BuiltIn { get; } =
     [
+        new(DefaultClipId, "Toque duplo"),
+        new("octave", "Toque em oitava"),
+        new("bright-bell", "Sino agudo"),
         new("chime", "Sino suave"),
         new("sparkle", "Brilho"),
         new("pop", "Bolha"),
         new("success", "Conquista"),
     ];
 
-    /// <summary>Plays the sound selected in the configuration. Must be called on the UI thread.</summary>
+    /// <summary>Sounds offered for a saved screenshot.</summary>
+    public static IReadOnlyList<ClipSoundInfo> ScreenshotSounds { get; } =
+    [
+        new(DefaultScreenshotId, "Câmera suave"),
+        new("camera-bell", "Câmera com sino"),
+        new(ShutterId, "Obturador clássico"),
+    ];
+
+    // The original sounds; the newer ones are drier and shorter.
+    private static readonly HashSet<string> EchoedSounds = ["chime", "sparkle", "pop", "success", ShutterId];
+
+    /// <summary>Plays the clip sound selected in the configuration. Must be called on the UI thread.</summary>
     public void Play(AppConfig config) => Play(config.ClipSound, config.ClipSoundFile, config.ClipSoundVolume);
 
-    /// <summary>Camera shutter played for screenshots (separate from the clip sound, like Medal).</summary>
-    public void PlayShutter(int volumePercent) => Play(ShutterId, null, volumePercent);
+    /// <summary>Plays the screenshot sound selected in the configuration, at the notification volume.</summary>
+    public void PlayScreenshot(AppConfig config) => Play(config.ScreenshotSound, null, config.ClipSoundVolume);
 
     public void Play(string soundId, string? customFile, int volumePercent)
     {
         var file = soundId == CustomId ? customFile : EnsureBuiltIn(soundId);
         if (string.IsNullOrWhiteSpace(file) || !File.Exists(file))
         {
-            file = EnsureBuiltIn("chime");
+            file = EnsureBuiltIn(DefaultClipId);
         }
 
         try
@@ -59,9 +76,9 @@ public sealed class ClipSoundPlayer
 
     private static string EnsureBuiltIn(string soundId)
     {
-        if (soundId != ShutterId && BuiltIn.All(s => s.Id != soundId))
+        if (BuiltIn.Concat(ScreenshotSounds).All(s => s.Id != soundId))
         {
-            soundId = "chime";
+            soundId = DefaultClipId;
         }
 
         var path = Path.Combine(CacheDirectory, $"{soundId}-v{Version}.wav");
@@ -76,9 +93,42 @@ public sealed class ClipSoundPlayer
 
     internal static float[] Synthesize(string soundId)
     {
-        var samples = new float[(int)(SampleRate * 1.3)];
+        var samples = new float[(int)(SampleRate * (EchoedSounds.Contains(soundId) ? 1.3 : 1.0))];
         switch (soundId)
         {
+            case DefaultClipId:
+                // Two soft glockenspiel strikes rising a fifth (A5, then E6). Short and dry.
+                AddGlock(samples, 0.00, 880.00, 0.7, brightness: 0.5);
+                AddGlock(samples, 0.13, 1318.51, 0.6, brightness: 0.5);
+                break;
+
+            case "octave":
+                // The same soft strikes an octave apart (A5, then A6).
+                AddGlock(samples, 0.00, 880.00, 0.7, brightness: 0.5);
+                AddGlock(samples, 0.13, 1760.00, 0.55, brightness: 0.5);
+                break;
+
+            case "bright-bell":
+                // Brighter, higher strikes an octave apart (C6, then C7).
+                AddGlock(samples, 0.00, 1046.50, 0.75);
+                AddGlock(samples, 0.14, 2093.00, 0.6);
+                break;
+
+            case DefaultScreenshotId:
+                // One soft camera tick, then a gentle rising fourth (D5, G5).
+                AddShutterTick(samples, 0.010, 0.4);
+                AddSoftTone(samples, 0.06, 587.33, 0.35);
+                AddSoftTone(samples, 0.11, 783.99, 0.65);
+                break;
+
+            case "camera-bell":
+                // Two camera ticks, then a gentle rising fifth (C5, G5).
+                AddShutterTick(samples, 0.010, 0.55);
+                AddShutterTick(samples, 0.065, 0.45);
+                AddSoftTone(samples, 0.10, 523.25, 0.35);
+                AddSoftTone(samples, 0.15, 783.99, 0.7);
+                break;
+
             case "sparkle":
                 // Quick rising C major arpeggio, light and airy.
                 double[] notes = [1046.50, 1318.51, 1567.98, 2093.00];
@@ -110,13 +160,17 @@ public sealed class ClipSoundPlayer
                 break;
 
             default:
-                // "chime": two gentle bell notes a fifth apart.
+                // "chime": two gentle bell notes a fifth apart (the original default).
                 AddBell(samples, 0.00, 659.25, 1.0, 0.34, decay: 5.5);
                 AddBell(samples, 0.10, 987.77, 1.1, 0.30, decay: 4.8);
                 break;
         }
 
-        AddEcho(samples, delaySeconds: 0.045, feedback: 0.22);
+        if (EchoedSounds.Contains(soundId))
+        {
+            AddEcho(samples, delaySeconds: 0.045, feedback: 0.22);
+        }
+
         Normalize(samples, 0.8f);
         return samples;
     }
@@ -133,6 +187,56 @@ public sealed class ClipSoundPlayer
             var w = 2 * Math.PI * frequency * t;
             var tone = Math.Sin(w) + 0.22 * Math.Sin(2 * w) * Math.Exp(-t * 4) + 0.06 * Math.Sin(3.01 * w) * Math.Exp(-t * 8);
             buffer[offset + i] += (float)(tone * envelope * amplitude);
+        }
+    }
+
+    /// <summary>
+    /// Glockenspiel strike: a quick, bright attack that drops fast and leaves a quiet ring.
+    /// <paramref name="brightness"/> scales the metallic upper partials.
+    /// </summary>
+    private static void AddGlock(float[] buffer, double start, double frequency, double amplitude, double brightness = 1)
+    {
+        var offset = (int)(start * SampleRate);
+        var length = Math.Min((int)(0.8 * SampleRate), buffer.Length - offset);
+        for (var i = 0; i < length; i++)
+        {
+            var t = i / (double)SampleRate;
+            var w = 2 * Math.PI * frequency * t;
+            var strike = Math.Sin(w) * Math.Exp(-t * 24) + 0.05 * Math.Sin(w) * Math.Exp(-t * 5);
+            var metal = brightness * (0.12 * Math.Sin(4.007 * w) * Math.Exp(-t * 32) + 0.03 * Math.Sin(2.99 * w) * Math.Exp(-t * 40));
+            var envelope = Math.Min(1, t / 0.0015) * FadeOut(i, length);
+            buffer[offset + i] += (float)((strike + metal) * envelope * amplitude);
+        }
+    }
+
+    /// <summary>Very short bright noise click, band-limited around 4 to 7 kHz, like a phone camera shutter.</summary>
+    private static void AddShutterTick(float[] buffer, double start, double amplitude)
+    {
+        var random = new Random(77 + (int)(start * 1000));
+        var offset = (int)(start * SampleRate);
+        var length = Math.Min((int)(0.04 * SampleRate), buffer.Length - offset);
+        double low = 0, lower = 0;
+        for (var i = 0; i < length; i++)
+        {
+            var t = i / (double)SampleRate;
+            low += (random.NextDouble() * 2 - 1 - low) * 0.6;
+            lower += (low - lower) * 0.35;
+            var envelope = Math.Min(1, t / 0.001) * Math.Exp(-t * 160);
+            buffer[offset + i] += (float)((low - lower) * envelope * amplitude);
+        }
+    }
+
+    /// <summary>Soft, round tone that rings for about half a second (sine plus a faint octave).</summary>
+    private static void AddSoftTone(float[] buffer, double start, double frequency, double amplitude)
+    {
+        var offset = (int)(start * SampleRate);
+        var length = Math.Min((int)(0.8 * SampleRate), buffer.Length - offset);
+        for (var i = 0; i < length; i++)
+        {
+            var t = i / (double)SampleRate;
+            var w = 2 * Math.PI * frequency * t;
+            var envelope = Math.Min(1, t / 0.008) * Math.Exp(-t * 11) * FadeOut(i, length);
+            buffer[offset + i] += (float)((Math.Sin(w) + 0.04 * Math.Sin(2 * w)) * envelope * amplitude);
         }
     }
 

@@ -11,6 +11,16 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
     public const uint ModWin = 0x8;
     public const uint ModNoRepeat = 0x4000;
 
+    /// <summary>Extra modifiers players often hold while pressing a hotkey (sprint, crouch, walk).</summary>
+    public const uint LooseModifiers = ModControl | ModShift;
+
+    /// <summary>
+    /// True when the held modifiers include every modifier of this binding plus, at most, Ctrl or Shift.
+    /// So "F9" still works while the player is running with Shift held, but not with Alt or Win held.
+    /// </summary>
+    public bool AcceptsLoosely(uint heldModifiers) =>
+        (heldModifiers & Modifiers) == Modifiers && (heldModifiers & ~Modifiers & ~LooseModifiers) == 0;
+
     private static readonly Dictionary<string, uint> NamedKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         ["PrintScreen"] = 0x2C, ["Insert"] = 0x2D, ["Delete"] = 0x2E, ["Home"] = 0x24, ["End"] = 0x23,
@@ -84,6 +94,10 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
 /// (RegisterHotKey). If another program already reserved it (error 1409, common for F12), it falls back to
 /// a shared low-level keyboard hook, which is how Medal reads its hotkeys: the key still reaches the other
 /// program and PoPreyClip reacts too.
+/// The hook is also installed alongside RegisterHotKey, because Windows only fires a reserved hotkey when
+/// the held modifiers match exactly: pressing F9 while running with Shift held would be ignored. The hook
+/// accepts those presses too (see <see cref="HotkeyBinding.AcceptsLoosely"/>) without taking the
+/// combination away from other programs.
 /// </summary>
 public sealed class GlobalHotkey : IDisposable
 {
@@ -98,17 +112,25 @@ public sealed class GlobalHotkey : IDisposable
     private readonly Thread _thread;
     private readonly ManualResetEventSlim _ready = new();
     private readonly HotkeyBinding _binding;
+    private readonly Func<uint, uint, bool>? _isTakenElsewhere;
     private LowLevelKeyboardProc? _hookProc;
     private IntPtr _hook;
     private bool _keyHeld;
+    private bool _registered;
     private uint _threadId;
     private string? _error;
 
     private delegate IntPtr LowLevelKeyboardProc(int code, IntPtr wParam, IntPtr lParam);
 
-    public GlobalHotkey(HotkeyBinding binding, Action onPressed)
+    /// <param name="isTakenElsewhere">
+    /// Receives a virtual key and the held modifiers; returns true when another PoPreyClip hotkey owns that exact
+    /// combination, so this one does not also fire (for example "F9" must not react to "Ctrl+F9" if that saves
+    /// something else).
+    /// </param>
+    public GlobalHotkey(HotkeyBinding binding, Action onPressed, Func<uint, uint, bool>? isTakenElsewhere = null)
     {
         _binding = binding;
+        _isTakenElsewhere = isTakenElsewhere;
         OnPressed = onPressed;
         _thread = new Thread(Run)
         {
@@ -126,12 +148,13 @@ public sealed class GlobalHotkey : IDisposable
     public Action OnPressed { get; }
 
     /// <summary>True when the key is shared with another program through the keyboard hook.</summary>
-    public bool IsShared => _hook != IntPtr.Zero;
+    public bool IsShared => !_registered && _hook != IntPtr.Zero;
 
     private void Run()
     {
         _threadId = Win32.GetCurrentThreadId();
         var registered = Win32.RegisterHotKey(IntPtr.Zero, HotkeyId, _binding.Modifiers | HotkeyBinding.ModNoRepeat, _binding.VirtualKey);
+        _registered = registered;
         if (!registered)
         {
             var error = Marshal.GetLastWin32Error();
@@ -143,6 +166,11 @@ public sealed class GlobalHotkey : IDisposable
             }
 
             Log.Info($"O atalho {_binding.Text} já é usado por outro programa. O PoPreyClip vai compartilhar a tecla com ele.");
+        }
+        else if (!InstallHook())
+        {
+            // The exact combination still works through RegisterHotKey.
+            Log.Warn($"O atalho {_binding.Text} só vai funcionar sem outras teclas como Shift ou Ctrl seguradas.");
         }
 
         _ready.Set();
@@ -189,7 +217,7 @@ public sealed class GlobalHotkey : IDisposable
                 if (message is WmKeyDown or WmSysKeyDown)
                 {
                     // Ignore auto-repeat while the key is held down.
-                    if (!_keyHeld && CurrentModifiers() == _binding.Modifiers)
+                    if (!_keyHeld && ShouldFire(CurrentModifiers()))
                     {
                         ThreadPool.QueueUserWorkItem(_ => OnPressed());
                     }
@@ -204,6 +232,24 @@ public sealed class GlobalHotkey : IDisposable
         }
 
         return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+    }
+
+    private bool ShouldFire(uint heldModifiers)
+    {
+        if (heldModifiers == _binding.Modifiers)
+        {
+            // When Windows reserved the key for us, the exact press already arrives as WM_HOTKEY.
+            return !_registered;
+        }
+
+        if (!_binding.AcceptsLoosely(heldModifiers) || _isTakenElsewhere?.Invoke(_binding.VirtualKey, heldModifiers) == true)
+        {
+            return false;
+        }
+
+        // Logging touches the disk, so it stays off the hook thread.
+        ThreadPool.QueueUserWorkItem(_ => Log.Debug($"Atalho {_binding.Text} reconhecido com Shift ou Ctrl segurado."));
+        return true;
     }
 
     private static uint CurrentModifiers()

@@ -8,6 +8,9 @@ public sealed class HotkeyManager : IDisposable
     private readonly object _gate = new();
     private bool _isSuspended;
 
+    /// <summary>Active bindings, read lock-free from the keyboard hook threads.</summary>
+    private volatile (string Name, HotkeyBinding Binding)[] _active = [];
+
     /// <summary>Raised with the hotkey name and a message when Windows refuses a registration.</summary>
     public event Action<string, string>? RegistrationFailed;
 
@@ -23,6 +26,7 @@ public sealed class HotkeyManager : IDisposable
             }
 
             _hotkeys.Clear();
+            _active = [];
             _isSuspended = true;
         }
     }
@@ -78,6 +82,7 @@ public sealed class HotkeyManager : IDisposable
 
                 existing.Hotkey.Dispose();
                 _hotkeys.Remove(name);
+                RefreshActive();
             }
 
             if (string.IsNullOrWhiteSpace(text))
@@ -87,7 +92,9 @@ public sealed class HotkeyManager : IDisposable
 
             try
             {
-                _hotkeys[name] = (text, new GlobalHotkey(HotkeyBinding.Parse(text), onPressed));
+                var binding = HotkeyBinding.Parse(text);
+                _hotkeys[name] = (text, new GlobalHotkey(binding, onPressed, (key, modifiers) => IsTakenByOther(name, key, modifiers)));
+                RefreshActive();
                 return null;
             }
             catch (Exception ex) when (ex is FormatException or InvalidOperationException)
@@ -98,6 +105,23 @@ public sealed class HotkeyManager : IDisposable
             }
         }
     }
+
+    /// <summary>True when another hotkey of this manager is exactly this key and modifier combination.</summary>
+    private bool IsTakenByOther(string name, uint key, uint modifiers)
+    {
+        foreach (var (otherName, binding) in _active)
+        {
+            if (binding.VirtualKey == key && binding.Modifiers == modifiers && !string.Equals(otherName, name, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void RefreshActive() =>
+        _active = _hotkeys.Select(entry => (entry.Key, HotkeyBinding.Parse(entry.Value.Text))).ToArray();
 
     /// <summary>Registers a single hotkey named after its key combination.</summary>
     public string? Register(string text, Action onPressed) => Set(text, text, onPressed);
@@ -112,6 +136,7 @@ public sealed class HotkeyManager : IDisposable
             }
 
             _hotkeys.Clear();
+            _active = [];
         }
     }
 }

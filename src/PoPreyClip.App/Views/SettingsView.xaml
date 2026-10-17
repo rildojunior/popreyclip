@@ -132,8 +132,23 @@
                     <DockPanel>
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PlaySoundOnScreenshot}" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Som de câmera ao capturar" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Usa o mesmo volume do aviso de clipe." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Som ao capturar" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Usa o mesmo volume do som de clipe." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel Margin="0,12,0,0" IsEnabled="{Binding PlaySoundOnScreenshot}">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ComboBox Width="250" ItemsSource="{Binding ScreenshotSoundOptions}" SelectedItem="{Binding ScreenshotSound}" DisplayMemberPath="Label" />
+                            <Button Margin="8,0,0,0" Command="{Binding PreviewScreenshotSoundCommand}" ToolTip="Ouvir">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="Ouvir" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Som da captura" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Escolha um som e ele toca na hora para você ouvir." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                 </StackPanel>
@@ -156,6 +171,29 @@
                                 Value="{Binding ClipSeconds, Mode=TwoWay, Delay=150}" />
                         <TextBlock Grid.Column="1" Text="{Binding ClipSecondsText}" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Saved notice -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8BD;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Aviso na tela" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Aparece quando um clipe ou uma captura de tela é salva e o PoPreyClip não está na frente."
+                               Style="{StaticResource HintText}" Margin="0,6,0,16" />
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ComboBox Width="250" ItemsSource="{Binding SavedNoticeOptions}" SelectedItem="{Binding SavedNotice}" DisplayMemberPath="Label" />
+                            <Button Margin="8,0,0,0" Content="Testar" Command="{Binding TestNoticeCommand}" />
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Tipo de aviso" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="O aviso do PoPreyClip fica 3 segundos no canto superior direito sem tirar o foco do jogo e aparece mesmo com o Não incomodar do Windows. Não aparece em jogos em tela cheia exclusiva."
+                                       Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
 

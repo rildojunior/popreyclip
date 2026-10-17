@@ -8,6 +8,13 @@ namespace PoPreyClip.Config;
 /// </summary>
 public sealed class AppConfig
 {
+    public const string NoticeOverlay = "overlay";
+    public const string NoticeWindows = "windows";
+    public const string NoticeOff = "off";
+    public const string DefaultClipSound = "duo";
+    public const string DefaultScreenshotSound = "camera-soft";
+    private const int CurrentSoundDefaults = 2;
+
     /// <summary>Root export folder. Clips go to &lt;ClipFolder&gt;\Clips\&lt;Game&gt;\.</summary>
     public string ClipFolder { get; set; } = @"C:\PoPreyClip";
 
@@ -41,8 +48,8 @@ public sealed class AppConfig
     /// <summary>Desktop app: play a short sound when a clip is saved.</summary>
     public bool PlaySoundOnClip { get; set; } = true;
 
-    /// <summary>Desktop app: built-in sound id ("chime", "sparkle", "pop", "success") or "custom".</summary>
-    public string ClipSound { get; set; } = "chime";
+    /// <summary>Desktop app: built-in sound id ("duo", "octave", "chime", ...) or "custom".</summary>
+    public string ClipSound { get; set; } = DefaultClipSound;
 
     /// <summary>Desktop app: .wav or .mp3 played when <see cref="ClipSound"/> is "custom".</summary>
     public string? ClipSoundFile { get; set; }
@@ -50,8 +57,23 @@ public sealed class AppConfig
     /// <summary>Desktop app: notification volume, 0 to 100.</summary>
     public int ClipSoundVolume { get; set; } = 70;
 
-    /// <summary>Desktop app: play a camera shutter sound when a screenshot is saved.</summary>
+    /// <summary>Desktop app: play a sound when a screenshot is saved.</summary>
     public bool PlaySoundOnScreenshot { get; set; } = true;
+
+    /// <summary>Desktop app: built-in screenshot sound id ("camera-soft", "camera-bell" or "shutter").</summary>
+    public string ScreenshotSound { get; set; } = DefaultScreenshotSound;
+
+    /// <summary>
+    /// Which built-in sound defaults this file has seen. Older files still on the previous default clip sound
+    /// ("chime") move to the new one once; a sound picked later on purpose is kept.
+    /// </summary>
+    public int SoundDefaultsVersion { get; set; }
+
+    /// <summary>
+    /// Desktop app: how a saved clip or screenshot is announced while the app window is not in front.
+    /// <see cref="NoticeOverlay"/> (PoPreyClip's own corner notice), <see cref="NoticeWindows"/> or <see cref="NoticeOff"/>.
+    /// </summary>
+    public string SavedNotice { get; set; } = NoticeOverlay;
 
     /// <summary>Desktop app: also copy each screenshot to the clipboard, like Medal.</summary>
     public bool CopyScreenshotToClipboard { get; set; } = true;
@@ -105,7 +127,19 @@ public sealed class AppConfig
     {
         ClipSeconds = Math.Clamp(ClipSeconds, 5, 600);
         ClipSoundVolume = Math.Clamp(ClipSoundVolume, 0, 100);
-        ClipSound = string.IsNullOrWhiteSpace(ClipSound) ? "chime" : ClipSound;
+        ClipSound = string.IsNullOrWhiteSpace(ClipSound) ? DefaultClipSound : ClipSound;
+        ScreenshotSound = string.IsNullOrWhiteSpace(ScreenshotSound) ? DefaultScreenshotSound : ScreenshotSound;
+        if (SoundDefaultsVersion < CurrentSoundDefaults)
+        {
+            if (ClipSound == "chime")
+            {
+                ClipSound = DefaultClipSound;
+            }
+
+            SoundDefaultsVersion = CurrentSoundDefaults;
+        }
+        var notice = SavedNotice?.Trim().ToLowerInvariant();
+        SavedNotice = notice is NoticeWindows or NoticeOff ? notice : NoticeOverlay;
         Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? "F8" : Hotkey.Trim();
         ToggleRecordingHotkey = ToggleRecordingHotkey?.Trim() ?? "";
         ScreenshotHotkey = ScreenshotHotkey?.Trim() ?? "";

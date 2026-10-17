@@ -32,6 +32,8 @@ public sealed class SettingsViewModel : ObservableObject
         Watched = new WatchedGamesViewModel(store);
         PreviewSoundCommand = new RelayCommand(() => _sounds.Play(C.ClipSound, C.ClipSoundFile, C.ClipSoundVolume));
         BrowseSoundCommand = new RelayCommand(BrowseSound);
+        PreviewScreenshotSoundCommand = new RelayCommand(() => _sounds.PlayScreenshot(C));
+        TestNoticeCommand = new RelayCommand(() => NoticeTestRequested?.Invoke(), () => C.SavedNotice != AppConfig.NoticeOff);
         _store = store;
         _applyHotkey = applyHotkey;
         _clipFolderText = store.Current.ClipFolder;
@@ -215,7 +217,32 @@ public sealed class SettingsViewModel : ObservableObject
     public bool PlaySoundOnScreenshot
     {
         get => C.PlaySoundOnScreenshot;
-        set => _store.Update(c => c.PlaySoundOnScreenshot = value);
+        set
+        {
+            _store.Update(c => c.PlaySoundOnScreenshot = value);
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand PreviewScreenshotSoundCommand { get; }
+
+    public IReadOnlyList<Option<string>> ScreenshotSoundOptions { get; } =
+        ClipSoundPlayer.ScreenshotSounds.Select(s => new Option<string>(s.Id, s.Label)).ToList();
+
+    public Option<string>? ScreenshotSound
+    {
+        get => ScreenshotSoundOptions.FirstOrDefault(o => o.Value == C.ScreenshotSound) ?? ScreenshotSoundOptions[0];
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            _store.Update(c => c.ScreenshotSound = value.Value);
+            OnPropertyChanged();
+            _sounds.PlayScreenshot(C);
+        }
     }
 
     public bool CopyScreenshotToClipboard
@@ -386,6 +413,36 @@ public sealed class SettingsViewModel : ObservableObject
         {
             _store.Update(c => c.PlaySoundOnClip = value);
             OnPropertyChanged();
+        }
+    }
+
+    // ---- Saved notice ----
+
+    /// <summary>Raised by the "Testar" button; the tray icon shows a sample notice in the chosen style.</summary>
+    public event Action? NoticeTestRequested;
+
+    public ICommand TestNoticeCommand { get; }
+
+    public IReadOnlyList<Option<string>> SavedNoticeOptions { get; } =
+    [
+        new(AppConfig.NoticeOverlay, "Aviso do PoPreyClip"),
+        new(AppConfig.NoticeWindows, "Notificação do Windows"),
+        new(AppConfig.NoticeOff, "Nenhum aviso"),
+    ];
+
+    public Option<string> SavedNotice
+    {
+        get => SavedNoticeOptions.FirstOrDefault(o => o.Value == C.SavedNotice) ?? SavedNoticeOptions[0];
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            _store.Update(c => c.SavedNotice = value.Value);
+            OnPropertyChanged();
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 

@@ -82,6 +82,46 @@ public class RecordingTests
     }
 
     [Theory]
+    [InlineData("F9", HotkeyBinding.ModShift, true)]
+    [InlineData("F9", HotkeyBinding.ModControl | HotkeyBinding.ModShift, true)]
+    [InlineData("F9", HotkeyBinding.ModAlt, false)]
+    [InlineData("F9", HotkeyBinding.ModWin, false)]
+    [InlineData("Alt+F9", HotkeyBinding.ModAlt | HotkeyBinding.ModShift, true)]
+    [InlineData("Alt+F9", HotkeyBinding.ModShift, false)]
+    public void Accepts_hotkeys_with_shift_or_ctrl_held(string text, uint heldModifiers, bool expected)
+    {
+        Assert.Equal(expected, HotkeyBinding.Parse(text).AcceptsLoosely(heldModifiers));
+    }
+
+    [Theory]
+    [InlineData(null, AppConfig.NoticeOverlay)]
+    [InlineData("banana", AppConfig.NoticeOverlay)]
+    [InlineData(" Windows ", AppConfig.NoticeWindows)]
+    [InlineData("off", AppConfig.NoticeOff)]
+    public void Normalizes_saved_notice(string? value, string expected)
+    {
+        var config = new AppConfig { SavedNotice = value! };
+        config.Normalize();
+
+        Assert.Equal(expected, config.SavedNotice);
+    }
+
+    [Theory]
+    [InlineData("chime", 0, AppConfig.DefaultClipSound)]
+    [InlineData("chime", 2, "chime")]
+    [InlineData("pop", 0, "pop")]
+    [InlineData("", 0, AppConfig.DefaultClipSound)]
+    public void Moves_old_default_clip_sound_to_the_new_one_once(string sound, int defaultsVersion, string expected)
+    {
+        var config = new AppConfig { ClipSound = sound, SoundDefaultsVersion = defaultsVersion, ScreenshotSound = "" };
+        config.Normalize();
+
+        Assert.Equal(expected, config.ClipSound);
+        Assert.Equal(AppConfig.DefaultScreenshotSound, config.ScreenshotSound);
+        Assert.Equal(2, config.SoundDefaultsVersion);
+    }
+
+    [Theory]
     [InlineData("Ctrl")]
     [InlineData("F8+F9")]
     [InlineData("Ctrl+Banana")]

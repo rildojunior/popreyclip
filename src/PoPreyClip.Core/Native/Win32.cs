@@ -160,6 +160,13 @@ internal static class Win32
         return builder.ToString();
     }
 
+    /// <summary>Bounds, in screen pixels, of the monitor that shows most of the window (the nearest one if none).</summary>
+    public static Rect GetMonitorBounds(IntPtr hwnd)
+    {
+        var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>() };
+        return GetMonitorInfoW(MonitorFromWindow(hwnd, MonitorDefaultToNearest), ref info) ? info.Monitor : default;
+    }
+
     /// <summary>True when the window covers its whole monitor (exclusive fullscreen or borderless windowed).</summary>
     public static bool IsFullscreen(IntPtr hwnd)
     {
