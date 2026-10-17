@@ -43,9 +43,18 @@
             </Border>
 
             <!-- Sources -->
-            <TextBlock Text="Fontes de áudio" Style="{StaticResource SectionText}" Margin="0,30,0,4" />
-            <TextBlock Text="Ligar ou desligar uma fonte reinicia a gravação, e o buffer recomeça do zero."
-                       Style="{StaticResource HintText}" Margin="0,0,0,12" />
+            <DockPanel Margin="0,30,0,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0"
+                            ToolTip="Mostra o nível de cada fonte mesmo sem gravar, para acertar os volumes antes de jogar. Só funciona com esta tela aberta e para sozinho quando a gravação começa.">
+                    <TextBlock Text="Ver níveis sem gravar" Style="{StaticResource LabelText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PreviewLevels}" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Fontes de áudio" Style="{StaticResource SectionText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Ligar ou desligar uma fonte reinicia a gravação, e o buffer recomeça do zero."
+                               Style="{StaticResource HintText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
             <ItemsControl ItemsSource="{Binding Sources}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

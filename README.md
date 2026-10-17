@@ -117,7 +117,7 @@ Na tela **Clipes**, clique em **Editar** no clipe. No editor:
 - **Juntar o áudio em uma faixa:** para enviar a lugares que só tocam a primeira faixa, como o WhatsApp.
 - **Salvar:** **Salvar como novo vídeo** cria `<nome>-editado.mp4` na mesma pasta, e o original continua intacto. **Substituir o original** só troca o arquivo depois que a edição termina sem erro.
 
-> Sem recorte da imagem, o vídeo é copiado sem perder qualidade e fica pronto em um ou dois segundos. Nesse caso ele começa no ponto de corte mais próximo antes do início escolhido (até 2 segundos antes), mostrado em amarelo na linha do tempo. Com recorte, o vídeo é recodificado pela placa de vídeo e começa exatamente onde você marcou, mas leva alguns segundos.
+> O clipe editado sempre começa exatamente onde você marcou. Quando você corta só o final, sem recortar a imagem, o vídeo é copiado sem perder qualidade e fica pronto na hora. Se o início cai no meio do vídeo ou a imagem é recortada, o vídeo é recodificado pela placa de vídeo e leva alguns segundos.
 
 ### Ajustar o áudio
 
@@ -129,6 +129,7 @@ Na tela **Áudio**:
   - *Somente separado:* uma faixa por fonte.
 - **Volume e reforço:** cada fonte (Jogo, Microfone, Discord...) tem o seu. O volume muda na hora, mesmo gravando.
 - **Microfone baixo?** Suba o **Reforço**. Headsets costumam precisar de +10 a +15 dB.
+- **Ver níveis sem gravar:** liga os medidores de cada fonte mesmo sem gravação, para acertar os volumes antes de jogar. Só funciona com a tela Áudio aberta e para sozinho quando a gravação começa. O som do jogo aparece quando um jogo é detectado.
 - **Adicionar aplicativo:** escolha um programa aberto, como o Spotify ou o navegador, para gravar o som dele numa faixa própria.
 
 > Os players comuns tocam só a primeira faixa (a "Mix"). Para ajustar o volume de cada faixa depois de gravar, use o **editor de clipes** do PoPreyClip (botão **Editar** na tela **Clipes**).

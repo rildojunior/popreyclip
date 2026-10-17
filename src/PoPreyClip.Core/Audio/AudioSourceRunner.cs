@@ -18,7 +18,8 @@ internal abstract record CaptureTarget(string Description)
 /// (game PID, app root PID, or microphone) and restarts capture when the target changes or fails,
 /// similar to how the Medal recorder regenerates audio capture when a relevant process starts or exits.
 /// </summary>
-internal sealed class AudioSourceRunner(AudioSourceConfig source, GameDetector games) : IDisposable
+/// <param name="quiet">Logs only failures; used by the level preview, which starts and stops with the Audio page.</param>
+internal sealed class AudioSourceRunner(AudioSourceConfig source, GameDetector games, bool quiet = false) : IDisposable
 {
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
     private WasapiCapture? _capture;
@@ -73,7 +74,10 @@ internal sealed class AudioSourceRunner(AudioSourceConfig source, GameDetector g
             };
             _capture.Start();
             _failedTarget = null;
-            Log.Info($"[{Name}] Capturando: {desired.Description}");
+            if (!quiet)
+            {
+                Log.Info($"[{Name}] Capturando: {desired.Description}");
+            }
         }
         catch (Exception ex) when (ex is COMException or TimeoutException or InvalidCastException or AggregateException)
         {
@@ -113,7 +117,10 @@ internal sealed class AudioSourceRunner(AudioSourceConfig source, GameDetector g
         _capture.Dispose();
         _capture = null;
         Fifo.Clear();
-        Log.Info($"[{Name}] Captura parada.");
+        if (!quiet)
+        {
+            Log.Info($"[{Name}] Captura parada.");
+        }
     }
 
     public void Dispose() => Stop();

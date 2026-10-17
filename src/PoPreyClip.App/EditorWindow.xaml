@@ -87,10 +87,7 @@
 
                 <controls:TrimTimeline x:Name="Timeline" Grid.Row="2" Height="70"
                                        Duration="{Binding Duration}" Start="{Binding Start}" End="{Binding End}"
-                                       Position="{Binding Position}" RealStart="{Binding RealStart}" Thumbnails="{Binding Thumbnails}" />
-
-                <TextBlock Grid.Row="3" Text="{Binding RealStartHint}" Style="{StaticResource HintText}" Margin="2,10,0,0" TextWrapping="Wrap"
-                           Visibility="{Binding ShowsRealStartHint, Converter={StaticResource BoolToVisibility}}" />
+                                       Position="{Binding Position}" Thumbnails="{Binding Thumbnails}" />
             </Grid>
 
             <!-- Options, with the save button always visible under them -->

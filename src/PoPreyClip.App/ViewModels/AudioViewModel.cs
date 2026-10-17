@@ -37,6 +37,8 @@ public sealed class AudioViewModel : ObservableObject
     private readonly DispatcherTimer _meterTimer;
     private RunningApp? _selectedApp;
     private bool _loadingApps;
+    private bool _viewVisible;
+    private Task _levelPreviewChange = Task.CompletedTask;
 
     public AudioViewModel(ConfigStore store, RecordingSession session)
     {
@@ -53,8 +55,8 @@ public sealed class AudioViewModel : ObservableObject
         LoadMicrophones();
         _ = LoadAppsAsync();
 
+        // Only runs while the page is on screen.
         _meterTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(40), DispatcherPriority.Background, (_, _) => UpdateMeters(), Dispatcher.CurrentDispatcher);
-        _meterTimer.Start();
     }
 
     public ObservableCollection<AudioSourceViewModel> Sources { get; } = [];
@@ -108,6 +110,55 @@ public sealed class AudioViewModel : ObservableObject
             OnPropertyChanged();
             OnPropertyChanged(nameof(ModeDescription));
         }
+    }
+
+    /// <summary>Captures the sources just to move the meters while not recording, only while this page is open.</summary>
+    public bool PreviewLevels
+    {
+        get => _store.Current.Audio.PreviewLevels;
+        set
+        {
+            if (value == PreviewLevels)
+            {
+                return;
+            }
+
+            _store.Update(c => c.Audio.PreviewLevels = value);
+            OnPropertyChanged();
+            ApplyLevelPreview();
+        }
+    }
+
+    /// <summary>Called by the page when it appears or disappears (other page, window minimized or in the tray).</summary>
+    internal void SetViewVisible(bool visible)
+    {
+        if (_viewVisible == visible)
+        {
+            return;
+        }
+
+        _viewVisible = visible;
+        if (visible)
+        {
+            _meterTimer.Start();
+        }
+        else
+        {
+            _meterTimer.Stop();
+            foreach (var source in Sources)
+            {
+                source.ClearLevel();
+            }
+        }
+
+        ApplyLevelPreview();
+    }
+
+    private void ApplyLevelPreview()
+    {
+        var on = _viewVisible && PreviewLevels;
+        // Starting or stopping the captures can wait on the recorder's lock, so it stays off the UI thread, in order.
+        _levelPreviewChange = _levelPreviewChange.ContinueWith(_ => _session.LevelPreview = on, TaskScheduler.Default);
     }
 
     public string ModeDescription => Mode switch
@@ -367,6 +418,8 @@ public sealed class AudioSourceViewModel : ObservableObject
         var next = Math.Max(target, Level - 0.03);
         Level = next < 0.01 ? 0 : next;
     }
+
+    internal void ClearLevel() => Level = 0;
 
     internal void RefreshDevice() => OnPropertyChanged(nameof(Device));
 }

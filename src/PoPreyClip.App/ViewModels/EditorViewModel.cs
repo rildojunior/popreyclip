@@ -174,15 +174,6 @@ public sealed class EditorViewModel : ObservableObject, IDisposable
 
     public string SelectionText => $"Trecho: {FormatTime(Start)} a {FormatTime(End)} · {FormatTime(End - Start)}";
 
-    /// <summary>Where the saved clip really starts. Without a crop the video is copied from the keyframe before the start.</summary>
-    public double RealStart => _media is null || IsCropping ? Start : _media.KeyframeAtOrBefore(Start);
-
-    public bool ShowsRealStartHint => RealStart < Start - 0.05;
-
-    public string RealStartHint =>
-        $"Sem recorte da imagem, o vídeo é copiado sem perder qualidade e começa em {FormatTime(RealStart)}, " +
-        "o ponto de corte mais próximo (faixa amarela).";
-
     public CropMode CropMode
     {
         get => _cropMode;
@@ -394,9 +385,6 @@ public sealed class EditorViewModel : ObservableObject, IDisposable
     private void OnRangeChanged()
     {
         OnPropertyChanged(nameof(SelectionText));
-        OnPropertyChanged(nameof(RealStart));
-        OnPropertyChanged(nameof(ShowsRealStartHint));
-        OnPropertyChanged(nameof(RealStartHint));
     }
 
     private async Task SaveAsync()
@@ -424,7 +412,7 @@ public sealed class EditorViewModel : ObservableObject, IDisposable
 
         IsSaving = true;
         SaveProgress = 0;
-        Status = plan.Crop is null ? "Salvando..." : "Salvando (a imagem recortada precisa ser recodificada)...";
+        Status = ClipEditor.NeedsReencode(_media, plan) ? "Salvando (o vídeo é recodificado para começar no ponto exato)..." : "Salvando...";
         _saveCancel = new CancellationTokenSource();
         try
         {

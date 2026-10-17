@@ -32,6 +32,8 @@ public sealed record ClipMedia(
     /// <summary>
     /// Where a copy without re-encoding really starts: the last keyframe at or before <paramref name="start"/>.
     /// </summary>
+    public bool IsKeyframe(double start) => start - KeyframeAtOrBefore(start) <= 0.5 / Fps;
+
     public double KeyframeAtOrBefore(double start)
     {
         var result = 0.0;

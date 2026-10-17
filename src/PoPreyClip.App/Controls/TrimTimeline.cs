@@ -14,7 +14,6 @@ public sealed class TrimTimeline : FrameworkElement
     public static readonly DependencyProperty StartProperty = Register(nameof(Start), 0.0, twoWay: true);
     public static readonly DependencyProperty EndProperty = Register(nameof(End), 0.0, twoWay: true);
     public static readonly DependencyProperty PositionProperty = Register(nameof(Position), 0.0);
-    public static readonly DependencyProperty RealStartProperty = Register(nameof(RealStart), 0.0);
 
     public static readonly DependencyProperty ThumbnailsProperty = DependencyProperty.Register(
         nameof(Thumbnails), typeof(ImageSource), typeof(TrimTimeline),
@@ -28,7 +27,6 @@ public sealed class TrimTimeline : FrameworkElement
     private static readonly Brush TrackBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x1E, 0x22, 0x30)));
     private static readonly Brush DimBrush = Frozen(new SolidColorBrush(Color.FromArgb(0xB4, 0x0B, 0x0D, 0x12)));
     private static readonly Brush AccentBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x63, 0x66, 0xF1)));
-    private static readonly Brush RealStartBrush = Frozen(new SolidColorBrush(Color.FromArgb(0x70, 0xF5, 0x9E, 0x0B)));
     private static readonly Brush GripBrush = Frozen(new SolidColorBrush(Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF)));
     private static readonly Pen AccentPen = Frozen(new Pen(AccentBrush, 3));
     private static readonly Pen PlayheadPen = Frozen(new Pen(Brushes.White, 2));
@@ -78,13 +76,6 @@ public sealed class TrimTimeline : FrameworkElement
         set => SetValue(PositionProperty, value);
     }
 
-    /// <summary>Where the saved clip will really start (a keyframe before <see cref="Start"/> when the video is copied).</summary>
-    public double RealStart
-    {
-        get => (double)GetValue(RealStartProperty);
-        set => SetValue(RealStartProperty, value);
-    }
-
     public ImageSource? Thumbnails
     {
         get => (ImageSource?)GetValue(ThumbnailsProperty);
@@ -111,12 +102,6 @@ public sealed class TrimTimeline : FrameworkElement
         var endX = ToX(End);
         dc.DrawRectangle(DimBrush, null, new Rect(strip.Left, strip.Top, Math.Max(0, startX - strip.Left), strip.Height));
         dc.DrawRectangle(DimBrush, null, new Rect(endX, strip.Top, Math.Max(0, strip.Right - endX), strip.Height));
-        var realX = ToX(RealStart);
-        if (startX - realX > 1)
-        {
-            dc.DrawRectangle(RealStartBrush, null, new Rect(realX, strip.Top, startX - realX, strip.Height));
-        }
-
         dc.Pop();
 
         // Selection frame and its two handles.

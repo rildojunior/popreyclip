@@ -204,6 +204,9 @@ public sealed class AudioConfig
 
     public int AudioBitrateKbps { get; set; } = 160;
 
+    /// <summary>Shows the source levels on the Audio page even when nothing is being recorded.</summary>
+    public bool PreviewLevels { get; set; }
+
     /// <summary>
     /// Audio sources. Special ids: "game-audio" (the detected game process tree) and "microphone".
     /// Any other id is an executable name such as "Discord.exe" or "Spotify.exe".

@@ -38,6 +38,10 @@ public sealed class RecordingSession : IDisposable
 
     private int _restarting;
 
+    private bool _levelPreview;
+
+    private AudioLevelMonitor? _levelMonitor;
+
     /// <summary>Games whose window could not be captured; they are filmed through the monitor instead.</summary>
     private readonly HashSet<int> _windowCaptureFailed = [];
 
@@ -155,6 +159,8 @@ public sealed class RecordingSession : IDisposable
 
             _detector.Poll();
             var source = ChooseVideoSource(config);
+            // Both would capture the same sources; the recording reports the levels from now on.
+            StopLevelMonitor();
             _pipeline = RecordingPipeline.Start(config, () => _store.Current, _detector, source);
             _signature = Signature(config);
             _autoStarted = automatic;
@@ -283,6 +289,14 @@ public sealed class RecordingSession : IDisposable
         }
 
         pipeline.Dispose();
+        if (Volatile.Read(ref _restarting) == 0)
+        {
+            lock (_gate)
+            {
+                UpdateLevelMonitor();
+            }
+        }
+
         Log.Info("Gravação parada.");
         RecordingChanged?.Invoke(false);
     }
@@ -337,13 +351,30 @@ public sealed class RecordingSession : IDisposable
         }
     }
 
-    /// <summary>Highest level (0 to 2) of an audio source since the previous call; 0 when not recording.</summary>
+    /// <summary>
+    /// Shows audio levels while not recording (the Audio page asks for it while it is open). The sources are captured
+    /// only for the meters, and the capture stops as soon as a recording starts or the preview is turned off.
+    /// </summary>
+    public bool LevelPreview
+    {
+        get => _levelPreview;
+        set
+        {
+            lock (_gate)
+            {
+                _levelPreview = value;
+                UpdateLevelMonitor();
+            }
+        }
+    }
+
+    /// <summary>Highest level (0 to 2) of an audio source since the previous call; 0 when nothing is captured.</summary>
     public float TakeLevel(string sourceId)
     {
         var pipeline = _pipeline;
         if (pipeline is null)
         {
-            return 0;
+            return _levelMonitor?.TakeLevel(sourceId) ?? 0;
         }
 
         for (var i = 0; i < pipeline.SourceIds.Count; i++)
@@ -473,5 +504,28 @@ public sealed class RecordingSession : IDisposable
         PoPreyClip.Updates.FfmpegManager.Installed -= OnFfmpegInstalled;
         _monitor.Dispose();
         Stop();
+        lock (_gate)
+        {
+            StopLevelMonitor();
+        }
+    }
+
+    /// <summary>Starts or stops the level preview to match the page and the recording. Called with the gate held.</summary>
+    private void UpdateLevelMonitor()
+    {
+        if (_levelPreview && _pipeline is null && !_disposed)
+        {
+            _levelMonitor ??= new AudioLevelMonitor(() => _store.Current, _detector);
+        }
+        else
+        {
+            StopLevelMonitor();
+        }
+    }
+
+    private void StopLevelMonitor()
+    {
+        _levelMonitor?.Dispose();
+        _levelMonitor = null;
     }
 }

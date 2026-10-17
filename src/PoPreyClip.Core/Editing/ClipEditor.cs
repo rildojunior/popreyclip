@@ -19,8 +19,9 @@ public sealed record ClipEditPlan(double Start, double End, CropRect? Crop, IRea
 }
 
 /// <summary>
-/// Writes an edited copy of a clip with one ffmpeg run. Without a crop the video is copied as is (instant, no quality
-/// loss) and starts at the keyframe before the chosen start; a crop re-encodes the video with the recording encoder.
+/// Writes an edited copy of a clip with one ffmpeg run. The saved clip always starts exactly where the user chose: when
+/// that is a keyframe and there is no crop the video is copied as is (instant, no quality loss); otherwise it is
+/// re-encoded with the recording encoder.
 /// Audio is copied unless a volume changed or the tracks are merged; then only the audio is encoded again.
 /// </summary>
 public static class ClipEditor
@@ -28,9 +29,15 @@ public static class ClipEditor
     /// <summary>Peak ceiling for boosted or mixed tracks (about -1.5 dBFS), same as the recorder's limiter.</summary>
     private const string Limiter = "alimiter=limit=0.84:level=disabled:latency=1";
 
-    /// <summary>Where the saved clip really starts: the chosen start when re-encoding, otherwise the keyframe before it.</summary>
-    public static double EffectiveStart(ClipMedia media, ClipEditPlan plan) =>
-        plan.Crop is null ? media.KeyframeAtOrBefore(plan.Start) : plan.Start;
+    /// <summary>
+    /// A copy can only begin on a keyframe (every 0.5 to 2 seconds), so any other start, or a crop, needs the video
+    /// encoded again. Trimming only the end, or starting on a keyframe, stays a copy.
+    /// </summary>
+    public static bool NeedsReencode(ClipMedia media, ClipEditPlan plan) => plan.Crop is not null || !media.IsKeyframe(plan.Start);
+
+    /// <summary>Where ffmpeg starts reading: the chosen start, or the keyframe it falls on when copying.</summary>
+    private static double EffectiveStart(ClipMedia media, ClipEditPlan plan) =>
+        NeedsReencode(media, plan) ? plan.Start : media.KeyframeAtOrBefore(plan.Start);
 
     /// <summary>"Clip-editado.mp4", or "Clip-editado-2.mp4" and so on when that name is taken.</summary>
     public static string NewFileName(string original)
@@ -49,7 +56,7 @@ public static class ClipEditor
 
     internal static List<string> BuildArguments(AppConfig config, ClipMedia media, ClipEditPlan plan, string encoder, string output)
     {
-        var reencode = plan.Crop is not null;
+        var reencode = NeedsReencode(media, plan);
         var start = EffectiveStart(media, plan);
         // A copy has to begin on a keyframe; seeking a hair after it makes sure ffmpeg does not pick the one before.
         var seek = reencode ? start : start + 0.001;
@@ -63,6 +70,10 @@ public static class ClipEditor
         if (plan.Crop is { } crop)
         {
             args.AddRange(["-vf", $"crop={crop.Width}:{crop.Height}:{crop.X}:{crop.Y}"]);
+        }
+
+        if (reencode)
+        {
             args.AddRange(VideoEncoderArguments(encoder, Math.Max(1, config.Video.Quality - 2)));
         }
         else
@@ -70,12 +81,14 @@ public static class ClipEditor
             args.AddRange(["-c:v", "copy"]);
         }
 
-        AddAudio(args, config, media, plan);
+        // Copied audio would begin at the keyframe ffmpeg seeked to, up to 2 s before the first re-encoded frame, so an
+        // exact start trims the audio exactly too.
+        AddAudio(args, config, media, plan, encode: reencode || plan.ChangesAudio);
         args.AddRange(["-map_metadata", "0", "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", "-f", "mp4", output]);
         return args;
     }
 
-    private static void AddAudio(List<string> args, AppConfig config, ClipMedia media, ClipEditPlan plan)
+    private static void AddAudio(List<string> args, AppConfig config, ClipMedia media, ClipEditPlan plan, bool encode)
     {
         var sources = media.SourceTracks;
         if (sources.Count == 0)
@@ -83,7 +96,7 @@ public static class ClipEditor
             return;
         }
 
-        if (!plan.ChangesAudio)
+        if (!encode)
         {
             args.AddRange(["-map", "0:a", "-c:a", "copy"]);
             return;
@@ -188,10 +201,10 @@ public static class ClipEditor
         // A .tmp name keeps the half-written file out of the clip library.
         var temp = Path.Combine(directory, $".{Path.GetFileNameWithoutExtension(media.Path)}.editando.tmp");
         // The first call probes the GPU encoder, so it stays off the UI thread.
-        var encoder = plan.Crop is null ? "copy" : await Task.Run(() => EncoderSelector.Resolve(config), cancellationToken);
+        var encoder = !NeedsReencode(media, plan) ? "copy" : await Task.Run(() => EncoderSelector.Resolve(config), cancellationToken);
         var args = BuildArguments(config, media, plan, encoder, temp);
         Log.Info($"Salvando clipe editado: {Path.GetFileName(target)} ({Ffmpeg.Format(plan.Start)}s a {Ffmpeg.Format(plan.End)}s, " +
-                 $"recorte {(plan.Crop is null ? "não" : "sim")}, áudio {(plan.ChangesAudio ? "refeito" : "copiado")})");
+                 $"recorte {(plan.Crop is null ? "não" : "sim")}, vídeo {(NeedsReencode(media, plan) ? "recodificado" : "copiado")}, áudio {(plan.ChangesAudio || NeedsReencode(media, plan) ? "refeito" : "copiado")})");
         try
         {
             await RunWithProgressAsync(config.FfmpegExe, args, plan.End - EffectiveStart(media, plan), progress, cancellationToken);

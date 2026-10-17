@@ -51,9 +51,9 @@ public class EditorTests
     }
 
     [Fact]
-    public void Trim_only_copies_video_and_audio()
+    public void Trim_starting_on_a_keyframe_copies_video_and_audio()
     {
-        var plan = new ClipEditPlan(3.5, 12, null, [100, 100], MergeAudio: false);
+        var plan = new ClipEditPlan(2.0, 12, null, [100, 100], MergeAudio: false);
 
         var args = ClipEditor.BuildArguments(Config(), Media(), plan, "copy", "out.tmp");
 
@@ -65,6 +65,30 @@ public class EditorTests
         Assert.DoesNotContain("-filter_complex", args);
         Assert.DoesNotContain("-vf", args);
         Assert.Equal("out.tmp", args[^1]);
+    }
+
+    [Fact]
+    public void Start_between_keyframes_is_reencoded_to_begin_exactly_there()
+    {
+        var plan = new ClipEditPlan(3.5, 12, null, [100, 100], MergeAudio: false);
+
+        var args = ClipEditor.BuildArguments(Config(), Media(), plan, "h264_nvenc", "out.tmp");
+
+        Assert.True(ClipEditor.NeedsReencode(Media(), plan));
+        Assert.Equal("3.5", args[args.IndexOf("-ss") + 1]);
+        Assert.Equal("h264_nvenc", args[args.IndexOf("-c:v") + 1]);
+        Assert.DoesNotContain("-vf", args);
+        // The audio is cut at the same exact point, so it is encoded too.
+        Assert.Equal("aac", args[args.IndexOf("-c:a") + 1]);
+    }
+
+    [Theory]
+    [InlineData(0.0, false)]
+    [InlineData(2.005, false)]
+    [InlineData(2.05, true)]
+    public void Only_a_start_off_the_keyframes_needs_reencoding(double start, bool expected)
+    {
+        Assert.Equal(expected, ClipEditor.NeedsReencode(Media(), new ClipEditPlan(start, 12, null, [100, 100], MergeAudio: false)));
     }
 
     [Fact]
