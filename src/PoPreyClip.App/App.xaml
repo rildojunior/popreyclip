@@ -11,6 +11,7 @@
             <local:EnumEqualsConverter x:Key="EnumEquals" />
             <local:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <local:NotEmptyToVisibilityConverter x:Key="NotEmptyToVisibility" />
+            <local:InvertBoolConverter x:Key="InvertBool" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

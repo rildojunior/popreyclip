@@ -201,6 +201,12 @@ public sealed class ClipsViewModel : ObservableObject
 
     internal AppConfig Config => _store.Current;
 
+    /// <summary>Raised after the editor saves a clip, with the saved file and whether it replaced the original.</summary>
+    public event Action<string, bool>? EditSaved;
+
+    internal void Edit(ClipItemViewModel clip) =>
+        EditorWindow.Open(_store.Current, clip.Path, (path, overwrote) => EditSaved?.Invoke(path, overwrote));
+
     private void ApplyFilter()
     {
         IEnumerable<ClipItemViewModel> query = _all;
@@ -290,6 +296,7 @@ public sealed class ClipItemViewModel : ObservableObject
         PlayCommand = new RelayCommand(() => ClipLibrary.Play(Path));
         RevealCommand = new RelayCommand(() => ClipLibrary.RevealInExplorer(Path));
         DeleteCommand = new RelayCommand(() => _owner.Remove(this));
+        EditCommand = new RelayCommand(() => _owner.Edit(this), () => !IsScreenshot);
     }
 
     public ClipInfo Info { get; }
@@ -317,6 +324,8 @@ public sealed class ClipItemViewModel : ObservableObject
     public ICommand RevealCommand { get; }
 
     public ICommand DeleteCommand { get; }
+
+    public ICommand EditCommand { get; }
 
     /// <summary>Loaded lazily the first time the card is shown.</summary>
     public BitmapImage? Thumbnail

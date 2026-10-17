@@ -1,0 +1,209 @@
+<Window x:Class="PoPreyClip.App.EditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PoPreyClip.App.Controls"
+        Title="Editar clipe - PoPreyClip" Width="1320" Height="840" MinWidth="1040" MinHeight="660"
+        WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/app.ico"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="{StaticResource UiFont}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="44" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                        <Setter Property="Margin" Value="7" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Title bar -->
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimizar" />
+                <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximizar" />
+                <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fechar" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="Editar clipe" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding FileName}" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" Margin="12,1,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="1" Margin="20,4,20,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Video, controls and timeline -->
+            <Grid Margin="0,0,20,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Background="Black" CornerRadius="12" ClipToBounds="True">
+                    <Grid x:Name="VideoHost" Margin="0">
+                        <Image x:Name="VideoImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="Linear" />
+                        <controls:CropOverlay x:Name="CropFrame"
+                                              SourceWidth="{Binding SourceWidth}" SourceHeight="{Binding SourceHeight}"
+                                              Aspect="{Binding CropAspect}" Crop="{Binding Crop}" IsCropping="{Binding IsCropping}" />
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="&#xE714;" Style="{StaticResource IconText}" FontSize="30" Foreground="{StaticResource TextFaintBrush}" />
+                            <TextBlock Text="Abrindo o clipe..." Foreground="{StaticResource TextMutedBrush}" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Transport -->
+                <DockPanel Grid.Row="1" Margin="0,14,0,10">
+                    <Button x:Name="PlayButton" DockPanel.Dock="Left" Style="{StaticResource PrimaryButton}" Width="44" Height="38" Padding="0"
+                            Click="PlayPause_Click" ToolTip="Reproduzir ou pausar (Espaço)" IsEnabled="{Binding IsLoading, Converter={StaticResource InvertBool}}">
+                        <TextBlock x:Name="PlayIcon" Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="15" />
+                    </Button>
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding PositionText}" FontSize="14" FontWeight="SemiBold" Margin="14,0,0,0" VerticalAlignment="Center"
+                               FontFamily="Segoe UI Variable Text, Segoe UI" Typography.NumeralAlignment="Tabular" />
+                    <TextBlock Text="{Binding SelectionText}" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Typography.NumeralAlignment="Tabular" />
+                </DockPanel>
+
+                <controls:TrimTimeline x:Name="Timeline" Grid.Row="2" Height="70"
+                                       Duration="{Binding Duration}" Start="{Binding Start}" End="{Binding End}"
+                                       Position="{Binding Position}" RealStart="{Binding RealStart}" Thumbnails="{Binding Thumbnails}" />
+
+                <TextBlock Grid.Row="3" Text="{Binding RealStartHint}" Style="{StaticResource HintText}" Margin="2,10,0,0" TextWrapping="Wrap"
+                           Visibility="{Binding ShowsRealStartHint, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+
+            <!-- Options, with the save button always visible under them -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel IsEnabled="{Binding IsSaving, Converter={StaticResource InvertBool}}">
+                    <Border Style="{StaticResource Card}" Padding="18">
+                        <StackPanel>
+                            <TextBlock Text="Recortar imagem" Style="{StaticResource SectionText}" />
+                            <TextBlock Text="Escolha um formato ou corte livre e arraste o quadro sobre o vídeo." Style="{StaticResource HintText}" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <Border Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="9" Padding="3">
+                                <UniformGrid Columns="3">
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="Original" Margin="1" ToolTip="Imagem inteira, sem recorte"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=None}" />
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="Livre" Margin="1"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=Free}" />
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="16:9" Margin="1"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=Wide}" />
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="9:16" Margin="1" ToolTip="Vertical, para Shorts, Reels e TikTok"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=Vertical}" />
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="1:1" Margin="1" ToolTip="Quadrado"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=Square}" />
+                                    <RadioButton Style="{StaticResource SegmentItem}" GroupName="crop" Content="4:5" Margin="1" ToolTip="Retrato, para o feed do Instagram"
+                                                 IsChecked="{Binding CropMode, Converter={StaticResource EnumEquals}, ConverterParameter=Portrait}" />
+                                </UniformGrid>
+                            </Border>
+                            <TextBlock Text="{Binding CropText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="2,10,0,0" />
+                            <TextBlock Text="Com recorte, o vídeo precisa ser recodificado ao salvar. Leva alguns segundos." Style="{StaticResource HintText}" Margin="2,4,0,0" TextWrapping="Wrap"
+                                       Visibility="{Binding IsCropping, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Volume do áudio" Style="{StaticResource SectionText}" />
+                            <TextBlock Text="Ajuste e ouça na hora. 100% é o volume gravado." Style="{StaticResource HintText}" Margin="0,4,0,8" TextWrapping="Wrap"
+                                       Visibility="{Binding HasAudio, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="Este clipe não tem áudio." Style="{StaticResource HintText}" Margin="0,4,0,0"
+                                       Visibility="{Binding HasAudio, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                            <ItemsControl ItemsSource="{Binding Tracks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding VolumeText}" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" Typography.NumeralAlignment="Tabular" />
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                            <Slider Minimum="0" Maximum="200" Value="{Binding Volume}" SmallChange="5" LargeChange="10" TickFrequency="5" IsSnapToTickEnabled="True" Margin="0,4,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <DockPanel Margin="0,16,0,0" Visibility="{Binding CanMergeAudio, Converter={StaticResource BoolToVisibility}}">
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding MergeAudio}" VerticalAlignment="Top" Margin="10,2,0,0" />
+                                <StackPanel>
+                                    <TextBlock Text="Juntar o áudio em uma faixa" Style="{StaticResource LabelText}" />
+                                    <TextBlock Text="Para enviar a lugares que só tocam a primeira faixa (WhatsApp, alguns sites e players)."
+                                               Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="18" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Salvar" Style="{StaticResource SectionText}" Margin="0,0,0,12" />
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="save" IsChecked="{Binding SaveAsNew}">
+                                <StackPanel>
+                                    <TextBlock Text="Salvar como novo vídeo" FontWeight="SemiBold" />
+                                    <TextBlock Text="O original continua intacto." Style="{StaticResource HintText}" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="save" IsChecked="{Binding Overwrite}" Margin="0,8,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Substituir o original" FontWeight="SemiBold" />
+                                    <TextBlock Text="O clipe só é trocado depois que a edição termina sem erro." Style="{StaticResource HintText}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="1" Padding="0,14,0,0">
+            <StackPanel>
+                <Grid Height="6" Margin="0,0,0,10" Visibility="{Binding IsSaving, Converter={StaticResource BoolToVisibility}}">
+                    <Border CornerRadius="3" Background="{StaticResource Surface3Brush}" />
+                    <Border CornerRadius="3" Background="{StaticResource AccentBrush}" RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="{Binding SaveProgress}" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
+                <TextBlock Text="{Binding Status}" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,10"
+                           Visibility="{Binding Status, Converter={StaticResource NotEmptyToVisibility}}" />
+                <Grid>
+                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" Padding="12,10"
+                            Visibility="{Binding IsSaving, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74E;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" />
+                            <TextBlock Text="Salvar edição" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding CancelSaveCommand}" Padding="12,10" Content="Cancelar"
+                            Visibility="{Binding IsSaving, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </StackPanel>
+            </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

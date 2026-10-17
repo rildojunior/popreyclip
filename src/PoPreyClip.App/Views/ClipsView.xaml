@@ -132,7 +132,8 @@
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Button Command="{Binding PlayCommand}" Style="{StaticResource PrimaryButton}" Padding="10,7">
@@ -141,13 +142,15 @@
                                                 <TextBlock Text="{Binding OpenText}" Margin="7,0,0,0" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="1" Command="{Binding RevealCommand}" Padding="10,7" Margin="8,0,0,0">
+                                        <Button Grid.Column="1" Command="{Binding EditCommand}" Padding="10,7" Margin="8,0,0,0" ToolTip="Cortar, recortar a imagem e ajustar o áudio"
+                                                Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="&#xE838;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
-                                                <TextBlock Text="Pasta" Margin="7,0,0,0" />
+                                                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                                <TextBlock Text="Editar" Margin="7,0,0,0" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE74D;" Margin="8,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
+                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="8,0,0,0" Command="{Binding RevealCommand}" ToolTip="Mostrar na pasta" />
+                                        <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE74D;" Margin="8,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
                                     </Grid>
                                 </StackPanel>
                             </StackPanel>

@@ -53,6 +53,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         Audio = new AudioViewModel(store, session);
         Clips = new ClipsViewModel(store);
+        Clips.EditSaved += (_, overwrote) =>
+        {
+            ShowNotice(overwrote ? "Clipe editado e substituído" : "Clipe editado salvo como novo vídeo");
+            Clips.ScheduleRefresh();
+        };
         Updates = new UpdatesViewModel(store, exitForUpdate);
         Settings = new SettingsViewModel(store, SetHotkey, _sounds) { Updates = Updates };
 

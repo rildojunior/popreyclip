@@ -30,6 +30,9 @@ internal sealed class OverlayNotice : Window
     private const double ShadowDip = 14;
     private const string CheckGlyph = "";
     private const int BarFramesPerSecond = 20;
+    private const double CardRadius = 12;
+    private const double CardBorder = 2;
+    private const double InnerRadius = CardRadius - CardBorder;
     private static readonly TimeSpan VisibleTime = TimeSpan.FromSeconds(3);
     private static readonly Duration FadeTime = TimeSpan.FromMilliseconds(150);
     private static readonly Brush CardBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x14, 0x18, 0x21)));
@@ -143,7 +146,6 @@ internal sealed class OverlayNotice : Window
         {
             Height = 4,
             Background = success,
-            CornerRadius = new CornerRadius(0, 0, 10, 10),
             RenderTransform = timeLeft,
             RenderTransformOrigin = new Point(0, 0.5),
         };
@@ -151,16 +153,19 @@ internal sealed class OverlayNotice : Window
         var layout = new StackPanel();
         layout.Children.Add(row);
         layout.Children.Add(bar);
+        // A 4 px bar cannot have a 10 px rounded corner, so the content is clipped to the inside of the card's
+        // rounded border instead (12 px outer radius minus the 2 px border).
+        layout.SizeChanged += (_, e) => layout.Clip = new RectangleGeometry(new Rect(e.NewSize), InnerRadius, InnerRadius);
 
         return new Border
         {
             Margin = new Thickness(ShadowDip),
             MinWidth = 290,
             MaxWidth = 380,
-            CornerRadius = new CornerRadius(12),
+            CornerRadius = new CornerRadius(CardRadius),
             Background = CardBrush,
             BorderBrush = success,
-            BorderThickness = new Thickness(2),
+            BorderThickness = new Thickness(CardBorder),
             Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 6, Direction = 270, Opacity = 0.55, Color = Colors.Black },
             Child = layout,
         };

@@ -40,7 +40,8 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🎧 **Áudio separado por aplicativo:** jogo, microfone, Discord e qualquer outro programa viram faixas separadas no clipe, cada uma com seu volume.
 - 🎚️ **Mixer de áudio:** volume de 0 a 200%, reforço de até +30 dB para microfones baixos e um limitador que evita distorção.
 - 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
-- 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, abrir a pasta ou excluir.
+- 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
+- ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift ou Ctrl segurados, e podem ser trocados nas configurações.
 - 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
@@ -106,6 +107,18 @@ C:\PoPreyClip\Clips\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
 
 Aperte **F12**. A imagem vai para `C:\PoPreyClip\Screenshots\<Nome do Jogo>\` e também fica copiada, pronta para colar com **Ctrl+V**.
 
+### Editar um clipe
+
+Na tela **Clipes**, clique em **Editar** no clipe. No editor:
+
+- **Cortar o começo e o fim:** arraste as alças roxas nas pontas da linha do tempo. A **barra de espaço** reproduz e pausa.
+- **Recortar a imagem:** escolha um formato em **Recortar imagem** (**9:16** para vídeo vertical, **1:1**, **4:5**, **16:9** ou **Livre**) e arraste o quadro sobre o vídeo.
+- **Volume do áudio:** cada faixa tem a sua barra, de 0 a 200%, e o som muda na hora enquanto o vídeo toca. Em clipes gravados com tudo numa faixa só, aparece uma barra única.
+- **Juntar o áudio em uma faixa:** para enviar a lugares que só tocam a primeira faixa, como o WhatsApp.
+- **Salvar:** **Salvar como novo vídeo** cria `<nome>-editado.mp4` na mesma pasta, e o original continua intacto. **Substituir o original** só troca o arquivo depois que a edição termina sem erro.
+
+> Sem recorte da imagem, o vídeo é copiado sem perder qualidade e fica pronto em um ou dois segundos. Nesse caso ele começa no ponto de corte mais próximo antes do início escolhido (até 2 segundos antes), mostrado em amarelo na linha do tempo. Com recorte, o vídeo é recodificado pela placa de vídeo e começa exatamente onde você marcou, mas leva alguns segundos.
+
 ### Ajustar o áudio
 
 Na tela **Áudio**:
@@ -118,7 +131,7 @@ Na tela **Áudio**:
 - **Microfone baixo?** Suba o **Reforço**. Headsets costumam precisar de +10 a +15 dB.
 - **Adicionar aplicativo:** escolha um programa aberto, como o Spotify ou o navegador, para gravar o som dele numa faixa própria.
 
-> Os players comuns tocam só a primeira faixa (a "Mix"). Para ouvir cada faixa separada, use um editor como o **DaVinci Resolve**, o **Premiere** ou o **Shotcut**.
+> Os players comuns tocam só a primeira faixa (a "Mix"). Para ajustar o volume de cada faixa depois de gravar, use o **editor de clipes** do PoPreyClip (botão **Editar** na tela **Clipes**).
 
 ### Mudar a pasta, os atalhos e o vídeo
 
@@ -263,6 +276,7 @@ O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml
 2. Cada fonte de áudio é capturada separada pelo Windows (WASAPI com captura por processo).
 3. Um mixer alinha as fontes, aplica volume, reforço e limitador e manda cada faixa a um segundo processo do FFmpeg, só de áudio. Assim, se a imagem travar, o som não trava junto.
 4. Vídeo e áudio usam o relógio do Windows como base comum. Ao salvar, os trechos recentes são juntados sem recodificar e viram um MP4 sincronizado.
+5. O editor de clipes é uma janela criada só quando é aberta. A prévia usa o mesmo FFmpeg: um processo decodifica o vídeo pela placa de vídeo, no tamanho da tela; outro decodifica todas as faixas de áudio lado a lado, e o app as mistura com o volume de cada uma e toca pelo WASAPI. Ao fechar, os processos param e a memória é devolvida.
 
 ## 🔒 Privacidade
 

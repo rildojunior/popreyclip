@@ -196,6 +196,18 @@ internal interface IAudioCaptureClient
 }
 
 [ComImport]
+[Guid("F294ACFC-3146-4483-A7BF-ADDCA7C260E2")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IAudioRenderClient
+{
+    [PreserveSig]
+    int GetBuffer(uint frames, out IntPtr data);
+
+    [PreserveSig]
+    int ReleaseBuffer(uint frames, uint flags);
+}
+
+[ComImport]
 [Guid("72A22D78-CDE4-431D-B8CC-843A71199B6D")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IActivateAudioInterfaceAsyncOperation
@@ -241,6 +253,7 @@ internal static class CoreAudioNative
 
     public static readonly Guid IidAudioClient = new("1CB9AD4C-DBFA-4C32-B178-C2F568A703B2");
     public static readonly Guid IidAudioCaptureClient = new("C8ADBD64-E71E-48A0-A4DE-185C395CD317");
+    public static readonly Guid IidAudioRenderClient = new("F294ACFC-3146-4483-A7BF-ADDCA7C260E2");
 
     public static readonly PropertyKey DeviceFriendlyName = new()
     {
