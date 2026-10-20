@@ -182,7 +182,7 @@ public sealed class VideoConfig
     /// <summary>Monitor index for Desktop Duplication capture (0 = primary output of the first GPU).</summary>
     public int MonitorIndex { get; set; }
 
-    /// <summary>ffmpeg video encoder: "auto" (NVIDIA when available, otherwise CPU), h264_nvenc, hevc_nvenc, av1_nvenc, h264_amf, h264_qsv or libx264.</summary>
+    /// <summary>ffmpeg video encoder: "auto" (NVIDIA, AMD or Intel when available, otherwise CPU), h264_nvenc, hevc_nvenc, av1_nvenc, h264_amf, h264_qsv or libx264.</summary>
     public string Encoder { get; set; } = "auto";
 
     /// <summary>Constant quality value (CQ/CRF). Lower is better quality and bigger files.</summary>

@@ -47,7 +47,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
 - 🚀 **Inicia com o Windows (opcional):** abre sozinho ao ligar o PC, já escondido na bandeja.
 - 🔄 **Atualização automática:** avisa quando sai uma versão nova e se atualiza com um clique.
-- ⚡ **Leve:** usa o codificador da placa de vídeo NVIDIA quando existe e o processador nos outros casos.
+- ⚡ **Leve:** usa o codificador da placa de vídeo (NVIDIA, AMD ou Intel) quando existe e o processador nos outros casos.
 
 <table>
   <tr>
@@ -66,7 +66,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 
 - Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits.
 - Internet na primeira vez que abrir, para o app baixar o FFmpeg (veja o passo 2).
-- Placa de vídeo NVIDIA é recomendada, mas não obrigatória.
+- Placa de vídeo NVIDIA, AMD ou Intel com codificador de vídeo é recomendada, mas não obrigatória.
 
 ### Passo 1: baixar o PoPreyClip
 
@@ -213,7 +213,7 @@ Na tela **Áudio**, suba o **Reforço** do microfone (+10 a +15 dB costuma basta
 <details>
 <summary><b>Tenho placa AMD ou Intel</b></summary>
 
-Funciona. No modo **Automático** o PoPreyClip usa o processador para gravar. As opções AMD e Intel nas configurações ainda são experimentais.
+Funciona. No modo **Automático** o PoPreyClip testa a placa ao abrir e usa o codificador AMD (AMF) ou Intel (Quick Sync) quando ela tem um. Se não der certo, grava pelo processador. Para escolher na mão, vá em **Configurações → Vídeo → Codificador**. Mantenha o driver da placa atualizado. A opção Intel ainda é experimental.
 </details>
 
 <details>

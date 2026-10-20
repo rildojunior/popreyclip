@@ -68,6 +68,39 @@ public class RecordingTests
         Assert.Contains("hwdownload,format=bgra,format=yuv420p", args);
     }
 
+    [Fact]
+    public void Amd_encoder_reads_the_captured_frames_directly_when_it_can()
+    {
+        var config = new AppConfig();
+        config.Normalize();
+
+        var direct = ReplayRecorder.BuildVideoArguments(config, "h264_amf", VideoSource.Monitor(0), DateTimeOffset.UtcNow, gpuFrames: true);
+        var copied = ReplayRecorder.BuildVideoArguments(config, "h264_amf", VideoSource.Monitor(0), DateTimeOffset.UtcNow, gpuFrames: false);
+
+        Assert.DoesNotContain("-vf", direct);
+        Assert.Equal("hwdownload,format=bgra,format=nv12", copied[copied.IndexOf("-vf") + 1]);
+        foreach (var args in new[] { direct, copied })
+        {
+            Assert.Equal("h264_amf", args[args.IndexOf("-c:v") + 1]);
+            Assert.Equal("cqp", args[args.IndexOf("-rc") + 1]);
+            Assert.Equal(args[args.IndexOf("-qp_i") + 1], args[args.IndexOf("-qp_p") + 1]);
+            Assert.Equal(args[args.IndexOf("-g") + 1], args[args.IndexOf("-header_spacing") + 1]);
+        }
+    }
+
+    [Fact]
+    public void Intel_encoder_gets_nv12_frames()
+    {
+        var config = new AppConfig();
+        config.Normalize();
+
+        var args = ReplayRecorder.BuildVideoArguments(config, "h264_qsv", VideoSource.Monitor(0), DateTimeOffset.UtcNow, gpuFrames: true);
+
+        Assert.Equal("hwdownload,format=bgra,format=nv12", args[args.IndexOf("-vf") + 1]);
+        Assert.Contains("-global_quality", args);
+        Assert.DoesNotContain("-qp_i", args);
+    }
+
     [Theory]
     [InlineData("F8", 0u, 0x77u)]
     [InlineData("Ctrl+Shift+F9", HotkeyBinding.ModControl | HotkeyBinding.ModShift, 0x78u)]

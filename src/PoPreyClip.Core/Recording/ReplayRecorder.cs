@@ -128,7 +128,9 @@ internal sealed class ReplayRecorder : IDisposable
             }
         }
 
-        Launch("video", BuildVideoArguments(_config, EncoderSelector.Resolve(_config), Source, timeZero), video: true);
+        var encoder = EncoderSelector.Resolve(_config);
+        var gpuFrames = EncoderSelector.TakesGpuFrames(_config, encoder);
+        Launch("video", BuildVideoArguments(_config, encoder, Source, timeZero, gpuFrames), video: true);
     }
 
     private void Launch(string name, IReadOnlyList<string> arguments, bool video)
@@ -187,11 +189,17 @@ internal sealed class ReplayRecorder : IDisposable
         }
     }
 
-    internal static List<string> BuildVideoArguments(AppConfig config, string? encoderOverride, VideoSource source, DateTimeOffset timeZero)
+    /// <param name="gpuFrames">AMD AMF takes the captured frames straight from the video card (NVENC always does).</param>
+    internal static List<string> BuildVideoArguments(AppConfig config, string? encoderOverride, VideoSource source, DateTimeOffset timeZero,
+        bool gpuFrames = false)
     {
         var video = config.Video;
         var encoder = encoderOverride ?? (string.Equals(video.Encoder, EncoderSelector.Auto, StringComparison.OrdinalIgnoreCase) ? "libx264" : video.Encoder);
         var isNvenc = encoder.EndsWith("_nvenc", StringComparison.OrdinalIgnoreCase);
+        var isAmf = encoder.EndsWith("_amf", StringComparison.OrdinalIgnoreCase);
+        var quality = video.Quality.ToString(CultureInfo.InvariantCulture);
+        // A keyframe starts every segment, so a clip can begin at any of them.
+        var gop = (video.Fps * video.SegmentSeconds).ToString(CultureInfo.InvariantCulture);
         var fps = video.Fps.ToString(CultureInfo.InvariantCulture);
         var cursor = video.ShowCursor ? 1 : 0;
 
@@ -214,22 +222,33 @@ internal sealed class ReplayRecorder : IDisposable
             "-fps_mode", "cfr", "-r", fps,
         };
 
+        // The capture hands over D3D11 frames. An encoder that can't read them gets a copy in system memory.
+        if (!isNvenc && !(isAmf && gpuFrames))
+        {
+            var format = encoder.Equals("libx264", StringComparison.OrdinalIgnoreCase) ? "yuv420p" : "nv12";
+            args.AddRange(["-vf", $"hwdownload,format=bgra,format={format}"]);
+        }
+
         if (isNvenc)
         {
-            // NVENC takes the D3D11 frames from the capture directly, without a copy to system memory.
-            args.AddRange(["-c:v", encoder, "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", video.Quality.ToString(CultureInfo.InvariantCulture), "-b:v", "0", "-forced-idr", "1"]);
+            args.AddRange(["-c:v", encoder, "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", quality, "-b:v", "0", "-forced-idr", "1"]);
         }
-        else if (encoder.Equals("libx264", StringComparison.OrdinalIgnoreCase))
+        else if (isAmf)
         {
-            args.AddRange(["-vf", "hwdownload,format=bgra,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-crf", video.Quality.ToString(CultureInfo.InvariantCulture)]);
+            // Constant quality; every keyframe is an IDR with the stream headers, so each segment plays on its own.
+            args.AddRange(["-c:v", encoder, "-usage", "transcoding", "-quality", "balanced", "-rc", "cqp",
+                "-qp_i", quality, "-qp_p", quality, "-bf", "0", "-forced_idr", "1", "-header_spacing", gop]);
+        }
+        else if (encoder.EndsWith("_qsv", StringComparison.OrdinalIgnoreCase))
+        {
+            args.AddRange(["-c:v", encoder, "-preset", "veryfast", "-global_quality", quality, "-forced_idr", "1"]);
         }
         else
         {
-            args.AddRange(["-vf", "hwdownload,format=bgra,format=nv12", "-c:v", encoder, "-qp_i", video.Quality.ToString(CultureInfo.InvariantCulture)]);
+            args.AddRange(["-c:v", "libx264", "-preset", "veryfast", "-crf", quality]);
         }
 
-        // A keyframe starts every segment, so a clip can begin at any of them.
-        args.AddRange(["-g", (video.Fps * video.SegmentSeconds).ToString(CultureInfo.InvariantCulture)]);
+        args.AddRange(["-g", gop]);
         args.AddRange(SegmentArguments(video, VideoSegmentPrefix));
         return args;
     }

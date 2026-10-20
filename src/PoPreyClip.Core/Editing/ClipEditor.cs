@@ -180,12 +180,13 @@ public static class ClipEditor
             _ when encoder.EndsWith("_nvenc", StringComparison.OrdinalIgnoreCase) =>
                 ["-c:v", encoder, "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-cq", q, "-b:v", "0"],
             _ when encoder.EndsWith("_amf", StringComparison.OrdinalIgnoreCase) =>
-                ["-c:v", encoder, "-rc", "cqp", "-qp_i", q, "-qp_p", q],
+                ["-c:v", encoder, "-usage", "transcoding", "-quality", "quality", "-rc", "cqp", "-qp_i", q, "-qp_p", q],
             _ when encoder.EndsWith("_qsv", StringComparison.OrdinalIgnoreCase) =>
                 ["-c:v", encoder, "-global_quality", q],
             _ => ["-c:v", "libx264", "-preset", "veryfast", "-crf", q],
         };
-        args.AddRange(["-pix_fmt", "yuv420p"]);
+        // Quick Sync only reads NV12, the same 4:2:0 picture in another memory layout.
+        args.AddRange(["-pix_fmt", encoder.EndsWith("_qsv", StringComparison.OrdinalIgnoreCase) ? "nv12" : "yuv420p"]);
         return args;
     }
 

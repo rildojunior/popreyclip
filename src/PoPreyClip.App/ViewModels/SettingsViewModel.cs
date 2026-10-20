@@ -265,7 +265,7 @@ public sealed class SettingsViewModel : ObservableObject
         new("h264_nvenc", "NVIDIA H.264"),
         new("hevc_nvenc", "NVIDIA H.265 / HEVC (arquivos menores)"),
         new("av1_nvenc", "NVIDIA AV1 (RTX 40 ou mais nova)"),
-        new("h264_amf", "AMD H.264 (experimental)"),
+        new("h264_amf", "AMD H.264"),
         new("h264_qsv", "Intel Quick Sync H.264 (experimental)"),
         new("libx264", "Processador (CPU) H.264"),
     ];
