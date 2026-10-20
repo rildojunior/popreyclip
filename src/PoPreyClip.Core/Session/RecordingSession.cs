@@ -78,6 +78,12 @@ public sealed class RecordingSession : IDisposable
     /// <summary>Raised after a screenshot is saved. The path and game reuse <see cref="ClipSavedInfo"/>.</summary>
     public event Action<ClipSavedInfo>? ScreenshotSaved;
 
+    /// <summary>
+    /// Raised when a game is detected and the replay buffer is on for it: it just turned on by itself, or it was
+    /// already on. Used for the "Pronto para clipar" notice.
+    /// </summary>
+    public event Action<DetectedGame>? GameReady;
+
     /// <summary>Raised when recording stops because of an error.</summary>
     public event Action<string>? Failed;
 
@@ -100,7 +106,17 @@ public sealed class RecordingSession : IDisposable
     /// </summary>
     private void OnGameChanged(DetectedGame? game)
     {
-        if (!_store.Current.AutoRecordGames || _disposed)
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (game is not null && IsRecording)
+        {
+            GameReady?.Invoke(game);
+        }
+
+        if (!_store.Current.AutoRecordGames)
         {
             return;
         }
@@ -108,7 +124,7 @@ public sealed class RecordingSession : IDisposable
         if (game is not null && !IsRecording)
         {
             Log.Info($"{game.DisplayName} aberto: ligando a gravação.");
-            _ = Task.Run(() => StartAutomatically());
+            _ = Task.Run(() => StartAutomatically(game));
         }
         else if (game is null && IsRecording && _autoStarted)
         {
@@ -126,11 +142,12 @@ public sealed class RecordingSession : IDisposable
         }
     }
 
-    private void StartAutomatically()
+    private void StartAutomatically(DetectedGame game)
     {
         try
         {
             StartCore(automatic: true);
+            GameReady?.Invoke(game);
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or System.Runtime.InteropServices.COMException or System.ComponentModel.Win32Exception or ObjectDisposedException)
         {

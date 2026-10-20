@@ -11,7 +11,7 @@ using PoPreyClip.Native;
 namespace PoPreyClip.App;
 
 /// <summary>
-/// PoPreyClip's own "clip saved" notice, drawn in the top-right corner of the monitor the player is using.
+/// PoPreyClip's own notice ("clip saved", "ready to clip"), drawn in the top-right corner of the monitor the player is using.
 /// Unlike Windows notifications it still shows while Windows' do-not-disturb hides them during games.
 /// It is a plain window on top (nothing is injected into the game), never takes focus, lets clicks through
 /// and is closed, not hidden, after a few seconds, so it uses no memory or CPU while it is off screen.
@@ -28,12 +28,13 @@ internal sealed class OverlayNotice : Window
     private const double MarginDip = 16;
     // Transparent room around the notice so its shadow is not cut off by the window edge.
     private const double ShadowDip = 14;
-    private const string CheckGlyph = "";
+    public const string CheckGlyph = "";
+    public const string GameGlyph = "";
     private const int BarFramesPerSecond = 20;
     private const double CardRadius = 12;
     private const double CardBorder = 2;
     private const double InnerRadius = CardRadius - CardBorder;
-    private static readonly TimeSpan VisibleTime = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan DefaultVisibleTime = TimeSpan.FromSeconds(3);
     private static readonly Duration FadeTime = TimeSpan.FromMilliseconds(150);
     private static readonly Brush CardBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x14, 0x18, 0x21)));
     private static readonly Brush DetailBrush = Frozen(new SolidColorBrush(Color.FromRgb(0xC9, 0xCD, 0xE0)));
@@ -44,7 +45,7 @@ internal sealed class OverlayNotice : Window
     private readonly DispatcherTimer _timer;
     private readonly ScaleTransform _timeLeft = new(1, 1);
 
-    private OverlayNotice(string title, string detail, IntPtr targetWindow)
+    private OverlayNotice(string title, string detail, string glyph, TimeSpan visibleTime, IntPtr targetWindow)
     {
         _targetWindow = targetWindow;
         WindowStyle = WindowStyle.None;
@@ -62,9 +63,9 @@ internal sealed class OverlayNotice : Window
         Left = -32000;
         Top = -32000;
         Opacity = 0;
-        Content = BuildContent(title, detail, _timeLeft);
+        Content = BuildContent(title, detail, glyph, _timeLeft);
 
-        _timer = new DispatcherTimer { Interval = VisibleTime };
+        _timer = new DispatcherTimer { Interval = visibleTime };
         _timer.Tick += (_, _) => FadeOutAndClose();
         SourceInitialized += (_, _) => MakeNonInteractive();
         Loaded += (_, _) =>
@@ -74,7 +75,7 @@ internal sealed class OverlayNotice : Window
             // The green bar empties while the notice is on screen. Each frame redraws the whole see-through window
             // in software, so the bar moves at 20 frames per second instead of 60: it still looks smooth and
             // costs about half the CPU.
-            var drain = new DoubleAnimation(1, 0, VisibleTime);
+            var drain = new DoubleAnimation(1, 0, visibleTime);
             Timeline.SetDesiredFrameRate(drain, BarFramesPerSecond);
             _timeLeft.BeginAnimation(ScaleTransform.ScaleXProperty, drain);
             _timer.Start();
@@ -89,15 +90,18 @@ internal sealed class OverlayNotice : Window
         };
     }
 
-    /// <summary>Shows a notice on the monitor of the current foreground window, replacing the previous one. UI thread only.</summary>
-    public static void Notify(string title, string detail)
+    /// <summary>
+    /// Shows a notice on the monitor of the current foreground window, replacing the previous one. Each line of
+    /// <paramref name="detail"/> is shown on its own row. UI thread only.
+    /// </summary>
+    public static void Notify(string title, string detail, string glyph = CheckGlyph, TimeSpan? visibleTime = null)
     {
         _current?.Close();
-        _current = new OverlayNotice(title, detail, Win32.GetForegroundWindow());
+        _current = new OverlayNotice(title, detail, glyph, visibleTime ?? DefaultVisibleTime, Win32.GetForegroundWindow());
         _current.Show();
     }
 
-    private static UIElement BuildContent(string title, string detail, ScaleTransform timeLeft)
+    private static UIElement BuildContent(string title, string detail, string glyph, ScaleTransform timeLeft)
     {
         var app = Application.Current;
         var success = (Brush)app.FindResource("SuccessBrush");
@@ -110,7 +114,7 @@ internal sealed class OverlayNotice : Window
             VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
-                Text = CheckGlyph,
+                Text = glyph,
                 FontFamily = (FontFamily)app.FindResource("IconFont"),
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,

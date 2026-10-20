@@ -193,7 +193,7 @@ public sealed class SettingsViewModel : ObservableObject
             var others = new (string Name, string Hotkey, string Action)[]
             {
                 (SaveClipHotkeyName, C.Hotkey, "salvar clipes"),
-                (ToggleRecordingHotkeyName, C.ToggleRecordingHotkey, "iniciar ou parar a gravação"),
+                (ToggleRecordingHotkeyName, C.ToggleRecordingHotkey, "ativar ou desativar a captura de clipes"),
                 (ScreenshotHotkeyName, C.ScreenshotHotkey, "capturar a tela"),
             };
             var conflict = others.FirstOrDefault(o => o.Name != name && value.Equals(o.Hotkey, StringComparison.OrdinalIgnoreCase));

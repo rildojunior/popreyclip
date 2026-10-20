@@ -98,7 +98,7 @@ public sealed class WatchedGamesViewModel : ObservableObject
         var name = GameDetector.CleanName(NewName);
         _store.Update(c => c.Games[window.ExeName] = name);
         LoadItems();
-        Log.Info($"{window.ExeName} agora é vigiado como \"{name}\". A gravação liga quando ele abrir.");
+        Log.Info($"{window.ExeName} agora é vigiado como \"{name}\". A captura de clipes liga quando ele abrir.");
         SelectedWindow = null;
         NewName = "";
     }

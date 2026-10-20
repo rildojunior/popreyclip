@@ -48,7 +48,8 @@
                             <TextBlock Text="{Binding StatusTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="24" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource SubtitleText}" Margin="0,4,0,18" />
                             <WrapPanel>
-                                <Button Command="{Binding ToggleRecordingCommand}" Margin="0,0,10,8" Padding="18,10">
+                                <Button Command="{Binding ToggleRecordingCommand}" Margin="0,0,10,8" Padding="18,10"
+                                        ToolTip="{Binding ToggleToolTip}" ToolTipService.ShowDuration="20000">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
                                             <Style.Triggers>
@@ -74,6 +75,10 @@
                                     </StackPanel>
                                 </Button>
                             </WrapPanel>
+                            <DockPanel Margin="0,2,0,6" Visibility="{Binding IsWaitingForGame, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource TextFaintBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                <TextBlock Text="Só use &quot;Ativar captura de clipes&quot; se o seu jogo abriu e não foi detectado." Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="8,0,0,0" />
+                            </DockPanel>
                             <DockPanel Margin="0,6,0,0">
                                 <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource TextFaintBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding HotkeyHint}" Style="{StaticResource HintText}" Margin="8,0,0,0" />
@@ -111,7 +116,7 @@
                         <TextBlock Text="Faixas de áudio do clipe" Style="{StaticResource LabelText}" />
                         <TextBlock Text="{Binding TracksText}" Style="{StaticResource HintText}" Margin="0,3,0,0"
                                    Visibility="{Binding TracksText, Converter={StaticResource NotEmptyToVisibility}}" />
-                        <TextBlock Text="Inicie a gravação para ver as faixas." Style="{StaticResource HintText}" Margin="0,3,0,0"
+                        <TextBlock Text="Ative a captura de clipes para ver as faixas." Style="{StaticResource HintText}" Margin="0,3,0,0"
                                    Visibility="{Binding TracksText, Converter={StaticResource NotEmptyToVisibility}, ConverterParameter=Invert}" />
                     </StackPanel>
                 </DockPanel>
@@ -171,7 +176,7 @@
                     Visibility="{Binding Clips.Recent.Count, Converter={StaticResource NotEmptyToVisibility}, ConverterParameter=Invert, FallbackValue=Collapsed}"
                     x:Name="NoClips">
                 <TextBlock Style="{StaticResource HintText}" HorizontalAlignment="Center">
-                    <Run Text="Nenhum clipe ainda. Inicie a gravação e pressione" />
+                    <Run Text="Nenhum clipe ainda. Com a captura de clipes ativa, pressione" />
                     <Run Text="{Binding Settings.SaveClipHotkey, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
                     <Run Text="durante o jogo." />
                 </TextBlock>

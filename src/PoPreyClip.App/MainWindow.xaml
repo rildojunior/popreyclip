@@ -73,7 +73,8 @@
                             <TextBlock Text="{Binding StatusTitle}" Margin="10,0,0,0" FontWeight="SemiBold" FontSize="14" />
                         </StackPanel>
                         <TextBlock Text="{Binding CurrentGame}" Margin="22,4,0,12" FontSize="12" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" />
-                        <Button Command="{Binding ToggleRecordingCommand}" HorizontalAlignment="Stretch">
+                        <Button Command="{Binding ToggleRecordingCommand}" HorizontalAlignment="Stretch"
+                                ToolTip="{Binding ToggleToolTip}" ToolTipService.ShowDuration="20000">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
                                     <Style.Triggers>
@@ -84,7 +85,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
-                            <TextBlock Text="{Binding ToggleText}" />
+                            <TextBlock Text="{Binding ToggleText}" TextWrapping="Wrap" TextAlignment="Center" />
                         </Button>
                         <Button Command="{Binding SaveClipCommand}" Margin="0,8,0,0" HorizontalAlignment="Stretch"
                                 Style="{StaticResource DangerButton}">

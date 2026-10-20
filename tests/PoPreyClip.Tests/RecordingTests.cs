@@ -117,11 +117,12 @@ public class RecordingTests
     [Theory]
     [InlineData("F9", HotkeyBinding.ModShift, true)]
     [InlineData("F9", HotkeyBinding.ModControl | HotkeyBinding.ModShift, true)]
-    [InlineData("F9", HotkeyBinding.ModAlt, false)]
+    [InlineData("F9", HotkeyBinding.ModAlt, true)]
     [InlineData("F9", HotkeyBinding.ModWin, false)]
+    [InlineData("F9", HotkeyBinding.ModAlt | HotkeyBinding.ModWin, false)]
     [InlineData("Alt+F9", HotkeyBinding.ModAlt | HotkeyBinding.ModShift, true)]
     [InlineData("Alt+F9", HotkeyBinding.ModShift, false)]
-    public void Accepts_hotkeys_with_shift_or_ctrl_held(string text, uint heldModifiers, bool expected)
+    public void Accepts_hotkeys_with_shift_ctrl_or_alt_held(string text, uint heldModifiers, bool expected)
     {
         Assert.Equal(expected, HotkeyBinding.Parse(text).AcceptsLoosely(heldModifiers));
     }
@@ -152,6 +153,30 @@ public class RecordingTests
         Assert.Equal(expected, config.ClipSound);
         Assert.Equal(AppConfig.DefaultScreenshotSound, config.ScreenshotSound);
         Assert.Equal(2, config.SoundDefaultsVersion);
+    }
+
+    [Theory]
+    [InlineData("Ctrl+Alt+F8", 0, AppConfig.DefaultToggleRecordingHotkey)]
+    [InlineData("alt+f9", 0, AppConfig.DefaultToggleRecordingHotkey)]
+    [InlineData("Alt+F9", 1, "Alt+F9")]
+    [InlineData("Ctrl+F10", 0, "Ctrl+F10")]
+    [InlineData("", 0, "")]
+    public void Moves_old_toggle_recording_hotkey_to_the_new_default_once(string hotkey, int defaultsVersion, string expected)
+    {
+        var config = new AppConfig { ToggleRecordingHotkey = hotkey, HotkeyDefaultsVersion = defaultsVersion };
+        config.Normalize();
+
+        Assert.Equal(expected, config.ToggleRecordingHotkey);
+        Assert.Equal(1, config.HotkeyDefaultsVersion);
+    }
+
+    [Fact]
+    public void New_config_toggles_recording_with_alt_shift_f9()
+    {
+        var config = new AppConfig();
+        config.Normalize();
+
+        Assert.Equal("Alt+Shift+F9", config.ToggleRecordingHotkey);
     }
 
     [Theory]

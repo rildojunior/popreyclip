@@ -11,12 +11,12 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
     public const uint ModWin = 0x8;
     public const uint ModNoRepeat = 0x4000;
 
-    /// <summary>Extra modifiers players often hold while pressing a hotkey (sprint, crouch, walk).</summary>
-    public const uint LooseModifiers = ModControl | ModShift;
+    /// <summary>Extra modifiers players often hold while pressing a hotkey (sprint, crouch, walk, push-to-talk).</summary>
+    public const uint LooseModifiers = ModControl | ModShift | ModAlt;
 
     /// <summary>
-    /// True when the held modifiers include every modifier of this binding plus, at most, Ctrl or Shift.
-    /// So "F9" still works while the player is running with Shift held, but not with Alt or Win held.
+    /// True when the held modifiers include every modifier of this binding plus, at most, Ctrl, Shift or Alt.
+    /// So "F9" still works while the player is running with Shift or holding Alt, but not with Win held.
     /// </summary>
     public bool AcceptsLoosely(uint heldModifiers) =>
         (heldModifiers & Modifiers) == Modifiers && (heldModifiers & ~Modifiers & ~LooseModifiers) == 0;
@@ -95,7 +95,7 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
 /// a shared low-level keyboard hook, which is how Medal reads its hotkeys: the key still reaches the other
 /// program and PoPreyClip reacts too.
 /// The hook is also installed alongside RegisterHotKey, because Windows only fires a reserved hotkey when
-/// the held modifiers match exactly: pressing F9 while running with Shift held would be ignored. The hook
+/// the held modifiers match exactly: pressing F9 while running with Shift (or holding Alt) would be ignored. The hook
 /// accepts those presses too (see <see cref="HotkeyBinding.AcceptsLoosely"/>) without taking the
 /// combination away from other programs.
 /// </summary>
@@ -170,7 +170,7 @@ public sealed class GlobalHotkey : IDisposable
         else if (!InstallHook())
         {
             // The exact combination still works through RegisterHotKey.
-            Log.Warn($"O atalho {_binding.Text} só vai funcionar sem outras teclas como Shift ou Ctrl seguradas.");
+            Log.Warn($"O atalho {_binding.Text} só vai funcionar sem outras teclas como Shift, Ctrl ou Alt seguradas.");
         }
 
         _ready.Set();
@@ -248,7 +248,7 @@ public sealed class GlobalHotkey : IDisposable
         }
 
         // Logging touches the disk, so it stays off the hook thread.
-        ThreadPool.QueueUserWorkItem(_ => Log.Debug($"Atalho {_binding.Text} reconhecido com Shift ou Ctrl segurado."));
+        ThreadPool.QueueUserWorkItem(_ => Log.Debug($"Atalho {_binding.Text} reconhecido com Shift, Ctrl ou Alt segurado."));
         return true;
     }
 

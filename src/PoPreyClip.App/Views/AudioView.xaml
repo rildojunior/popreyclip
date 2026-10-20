@@ -4,7 +4,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="36,4,36,36">
             <TextBlock Text="Áudio" Style="{StaticResource TitleText}" />
-            <TextBlock Text="Ajuste o volume de cada fonte. O volume muda na hora, mesmo com a gravação em andamento."
+            <TextBlock Text="Ajuste o volume de cada fonte. O volume muda na hora, mesmo com a captura de clipes ativa."
                        Style="{StaticResource SubtitleText}" Margin="0,4,0,24" />
 
             <!-- Track mode -->
@@ -45,13 +45,13 @@
             <!-- Sources -->
             <DockPanel Margin="0,30,0,12">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0"
-                            ToolTip="Mostra o nível de cada fonte mesmo sem gravar, para acertar os volumes antes de jogar. Só funciona com esta tela aberta e para sozinho quando a gravação começa.">
+                            ToolTip="Mostra o nível de cada fonte mesmo sem gravar, para acertar os volumes antes de jogar. Só funciona com esta tela aberta e para sozinho quando a captura de clipes liga.">
                     <TextBlock Text="Ver níveis sem gravar" Style="{StaticResource LabelText}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PreviewLevels}" VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel>
                     <TextBlock Text="Fontes de áudio" Style="{StaticResource SectionText}" Margin="0,0,0,4" />
-                    <TextBlock Text="Ligar ou desligar uma fonte reinicia a gravação, e o buffer recomeça do zero."
+                    <TextBlock Text="Ligar ou desligar uma fonte reinicia a captura de clipes, e os últimos segundos guardados recomeçam do zero."
                                Style="{StaticResource HintText}" TextWrapping="Wrap" />
                 </StackPanel>
             </DockPanel>

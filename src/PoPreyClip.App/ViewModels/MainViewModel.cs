@@ -105,6 +105,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             UpdateTracks();
         });
         _session.GameChanged += game => _dispatcher.InvokeAsync(() => UpdateGame(game));
+        _session.GameReady += game => _dispatcher.InvokeAsync(() => GameReady?.Invoke(game));
         _session.ClipSaved += info => _dispatcher.InvokeAsync(() => OnClipSaved(info));
         _session.ScreenshotSaved += info => _dispatcher.InvokeAsync(() => OnScreenshotSaved(info));
         _session.Failed += message => _dispatcher.InvokeAsync(() => ErrorMessage = message);
@@ -114,6 +115,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(StatusDetail));
             OnPropertyChanged(nameof(StatusTitle));
             OnPropertyChanged(nameof(IsWaitingForGame));
+            OnPropertyChanged(nameof(ToggleToolTip));
+            OnPropertyChanged(nameof(TrayText));
         });
 
         HotkeyBox.CapturingChanged += capturing =>
@@ -190,6 +193,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Raised when a screenshot is saved, for the tray notification.</summary>
     public event Action<ClipSavedInfo>? ScreenshotSaved;
 
+    /// <summary>Raised when a game is detected with clip capture on, for the "Pronto para clipar" notice.</summary>
+    public event Action<DetectedGame>? GameReady;
+
     public AppPage Page
     {
         get => _page;
@@ -264,6 +270,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 OnPropertyChanged(nameof(IsWaitingForGame));
                 OnPropertyChanged(nameof(StatusDetail));
                 OnPropertyChanged(nameof(ToggleText));
+                OnPropertyChanged(nameof(ToggleToolTip));
+                OnPropertyChanged(nameof(TrayText));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -283,7 +291,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string StatusTitle => IsBusy ? (IsRecording ? "Parando..." : "Iniciando...") : IsRecording ? "Gravando" : IsWaitingForGame ? "Em espera" : "Parado";
+    public string StatusTitle => IsBusy ? (IsRecording ? "Desativando..." : "Ativando...") : IsRecording ? "Captura de clipes ativa" : IsWaitingForGame ? "Em espera" : "Desativada";
 
     /// <summary>Idle mode with no recording: waiting for a game to open.</summary>
     public bool IsWaitingForGame => !IsRecording && _store.Current.AutoRecordGames;
@@ -291,10 +299,41 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string StatusDetail => IsRecording
         ? $"Os últimos {Settings.ClipSecondsText} ficam guardados. Pressione {_store.Current.Hotkey} para salvar."
         : IsWaitingForGame
-            ? "A gravação liga sozinha quando um jogo abrir e desliga quando ele fechar."
-            : "Inicie a gravação para poder salvar clipes.";
+            ? "Esperando um jogo abrir. A captura de clipes liga sozinha quando ele abrir e desliga quando ele fechar."
+            : "Ative a captura de clipes para poder salvar clipes.";
 
-    public string ToggleText => IsRecording ? "Parar gravação" : "Iniciar gravação";
+    public string ToggleText => IsRecording ? "Desativar captura de clipes" : "Ativar captura de clipes";
+
+    public string ToggleToolTip => IsRecording
+        ? "Desliga a captura de clipes. Se um jogo estiver aberto, ela só liga sozinha de novo quando outro jogo abrir."
+        : IsWaitingForGame
+            ? $"A captura de clipes liga sozinha quando o jogo é detectado. Ative à mão só se o seu jogo abriu e não foi detectado. Os últimos {Settings.ClipSecondsText} ficam guardados, e nada vira arquivo até você apertar {_store.Current.Hotkey}."
+            : $"Os últimos {Settings.ClipSecondsText} ficam guardados, e nada vira arquivo até você apertar {_store.Current.Hotkey}.";
+
+    /// <summary>App status for the notification-area icon: "Em espera", "Captura de clipes ativa (Jogo)"...</summary>
+    public string TrayStatus
+    {
+        get
+        {
+            if (!IsRecording)
+            {
+                return IsWaitingForGame ? "Em espera" : "Captura de clipes desativada";
+            }
+
+            return _session.CurrentGame is { } game ? $"Captura de clipes ativa ({game.DisplayName})" : "Captura de clipes ativa";
+        }
+    }
+
+    /// <summary>Text of the notification-area icon when the mouse is over it (Windows allows up to 127 characters).</summary>
+    public string TrayText
+    {
+        get
+        {
+            const int MaxLength = 127;
+            var text = $"PoPreyClip · {TrayStatus}";
+            return text.Length <= MaxLength ? text : text[..(MaxLength - 2)] + "…)";
+        }
+    }
 
     public string HotkeyHint
     {
@@ -309,7 +348,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             if (!string.IsNullOrWhiteSpace(c.ToggleRecordingHotkey))
             {
-                parts.Add($"{c.ToggleRecordingHotkey} liga ou desliga a gravação");
+                parts.Add($"{c.ToggleRecordingHotkey} ativa ou desativa a captura de clipes");
             }
 
             return string.Join(" · ", parts);
@@ -477,8 +516,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void UpdateGame(DetectedGame? game) =>
+    private void UpdateGame(DetectedGame? game)
+    {
         CurrentGame = game is null ? "Nenhum jogo detectado" : game.DisplayName;
+        OnPropertyChanged(nameof(TrayText));
+    }
 
     private void UpdateTracks()
     {

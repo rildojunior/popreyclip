@@ -34,7 +34,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 
 - 🎬 **Replay instantâneo:** enquanto você joga, o PoPreyClip grava em segundo plano e, quando você aperta **F8**, salva os últimos 30 segundos (a duração é configurável).
 - 🎯 **Grava só o jogo:** filma a janela do jogo, não a tela inteira. Alt-tab, outras janelas e a área de trabalho não aparecem no clipe, e o som continua sincronizado mesmo se o jogo for minimizado.
-- 💤 **Modo espera:** sem jogo aberto, o app fica parado e não gasta recursos. A gravação liga sozinha quando o jogo abre e desliga quando ele fecha.
+- 💤 **Modo espera:** sem jogo aberto, o app fica parado e não gasta recursos. A captura de clipes liga sozinha quando o jogo abre e desliga quando ele fecha. Um aviso no canto da tela, **Pronto para clipar**, confirma que o jogo foi detectado e mostra os atalhos.
 - 👀 **Jogos e apps vigiados:** escolha qualquer janela (um jogo que não foi detectado, um emulador, um programa) para ser tratada como jogo assim que abrir.
 - 📁 **Uma pasta por jogo:** o jogo aberto é detectado sozinho e cada clipe vai para `Clips\<Nome do Jogo>\`.
 - 🎧 **Áudio separado por aplicativo:** jogo, microfone, Discord e qualquer outro programa viram faixas separadas no clipe, cada uma com seu volume.
@@ -42,7 +42,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
-- ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift ou Ctrl segurados, e podem ser trocados nas configurações.
+- ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift, Ctrl ou Alt segurados, e podem ser trocados nas configurações.
 - 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
 - 🚀 **Inicia com o Windows (opcional):** abre sozinho ao ligar o PC, já escondido na bandeja.
@@ -78,7 +78,7 @@ Não precisa instalar mais nada: o `.exe` já traz tudo o que o app usa, inclusi
 
 ### Passo 2: abrir
 
-Dê dois cliques no `PoPreyClip.exe`. O app abre em espera e começa a gravar sozinho quando você abrir um jogo.
+Dê dois cliques no `PoPreyClip.exe`. O app abre em espera e ativa a captura de clipes sozinho quando você abrir um jogo.
 
 Na primeira vez, ele baixa sozinho o [FFmpeg](https://ffmpeg.org/), o programa gratuito que faz a gravação (cerca de 110 MB, leva alguns segundos). Depois, o PoPreyClip mantém o FFmpeg atualizado junto com o app. Você não precisa instalar nada. O andamento aparece em **Configurações → Atualizações**.
 
@@ -91,11 +91,15 @@ Dica: clique com o botão direito no `.exe`, escolha **Enviar para → Área de 
 ### Salvar um clipe
 
 1. Abra o PoPreyClip. Ele fica **em espera** até um jogo abrir.
-2. Abra o jogo. A gravação liga sozinha e a bolinha vermelha na barra lateral acende.
+2. Abra o jogo. A captura de clipes liga sozinha, a bolinha vermelha na barra lateral acende e o aviso **Pronto para clipar** aparece no canto da tela com o nome do jogo e os atalhos.
 3. Aconteceu algo bom? Aperte **F8**. Os últimos 30 segundos são salvos, e um som curto e um aviso verde no canto da tela confirmam.
-4. Ao fechar o jogo, a gravação desliga sozinha.
+4. Ao fechar o jogo, a captura de clipes desliga sozinha.
 
-Prefere gravar o tempo todo? Desligue **Gravar só quando um jogo estiver aberto** em **Configurações → Comportamento**. Os botões **Iniciar gravação** e **Parar gravação** também funcionam a qualquer momento.
+A captura de clipes não grava a partida inteira: ela só guarda os últimos segundos, e nada vira arquivo até você salvar um clipe. Passe o mouse no ícone do PoPreyClip, perto do relógio do Windows, ou clique nele com o botão direito para ver o status: **Em espera** ou **Captura de clipes ativa** com o nome do jogo.
+
+O jogo abriu e não foi detectado? Clique em **Ativar captura de clipes**, na tela inicial ou na barra lateral. Esse botão só é necessário nesse caso. Para o jogo ser reconhecido sozinho das próximas vezes, adicione-o em **Configurações → Jogos e apps vigiados**.
+
+Prefere deixar a captura ligada o tempo todo? Desligue **Ativar a captura de clipes só com um jogo aberto** em **Configurações → Comportamento**.
 
 O clipe vai para:
 
@@ -129,7 +133,7 @@ Na tela **Áudio**:
   - *Somente separado:* uma faixa por fonte.
 - **Volume e reforço:** cada fonte (Jogo, Microfone, Discord...) tem o seu. O volume muda na hora, mesmo gravando.
 - **Microfone baixo?** Suba o **Reforço**. Headsets costumam precisar de +10 a +15 dB.
-- **Ver níveis sem gravar:** liga os medidores de cada fonte mesmo sem gravação, para acertar os volumes antes de jogar. Só funciona com a tela Áudio aberta e para sozinho quando a gravação começa. O som do jogo aparece quando um jogo é detectado.
+- **Ver níveis sem gravar:** liga os medidores de cada fonte mesmo com a captura de clipes desativada, para acertar os volumes antes de jogar. Só funciona com a tela Áudio aberta e para sozinho quando a captura de clipes liga. O som do jogo aparece quando um jogo é detectado.
 - **Adicionar aplicativo:** escolha um programa aberto, como o Spotify ou o navegador, para gravar o som dele numa faixa própria.
 
 > Os players comuns tocam só a primeira faixa (a "Mix"). Para ajustar o volume de cada faixa depois de gravar, use o **editor de clipes** do PoPreyClip (botão **Editar** na tela **Clipes**).
@@ -171,7 +175,7 @@ Você pode procurar na hora ou desligar a busca automática em **Configurações
 |---|---|
 | `F8` | Salvar clipe dos últimos segundos |
 | `F12` | Capturar a tela |
-| `Ctrl+Alt+F8` | Iniciar ou parar a gravação |
+| `Alt+Shift+F9` | Ativar ou desativar a captura de clipes |
 
 Todos podem ser trocados em **Configurações → Teclas de atalho**.
 
@@ -201,7 +205,7 @@ O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo n�
 
 Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Teclas de atalho**.
 
-Segurar Shift ou Ctrl junto (para correr ou agachar, por exemplo) não atrapalha. Alt e a tecla Windows sim, porque o Windows usa essas combinações para outras coisas.
+Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por exemplo) não atrapalha. A tecla Windows sim, porque o Windows usa essas combinações para outras coisas. Se outro atalho do PoPreyClip usar exatamente a combinação apertada, vale o dele: com **F9** salvando o clipe e **Alt+Shift+F9** ativando a captura de clipes, Alt+F9 salva o clipe e Alt+Shift+F9 ativa ou desativa a captura.
 </details>
 
 <details>

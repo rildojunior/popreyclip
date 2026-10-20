@@ -14,3 +14,7 @@ docs/privado/
 
 # Release builds
 artifacts/
+
+# Claude Code: personal settings and the hook that refreshes dist\PoPreyClip.exe
+.claude/settings.local.json
+.claude/hooks/

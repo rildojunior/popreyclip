@@ -1,6 +1,7 @@
 using System.Windows;
 using PoPreyClip.App.ViewModels;
 using PoPreyClip.Config;
+using PoPreyClip.Games;
 using Forms = System.Windows.Forms;
 
 namespace PoPreyClip.App;
@@ -12,6 +13,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly MainWindow _window;
     private readonly MainViewModel _viewModel;
     private readonly Forms.ToolStripMenuItem _toggleItem;
+    private static readonly TimeSpan GameReadyTime = TimeSpan.FromSeconds(5);
     private bool _hintShown;
 
     public TrayIcon(MainWindow window, MainViewModel viewModel, Action exit)
@@ -21,19 +23,27 @@ internal sealed class TrayIcon : IDisposable
         using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/app.ico"))!.Stream;
 
         var menu = new Forms.ContextMenuStrip();
+        // Status line at the top, not clickable, like the text shown when the mouse is over the icon.
+        var statusItem = new Forms.ToolStripMenuItem(viewModel.TrayStatus) { Enabled = false };
+        menu.Items.Add(statusItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Abrir PoPreyClip", null, (_, _) => window.BringToFront());
         menu.Items.Add("Salvar clipe agora", null, (_, _) => viewModel.SaveClipCommand.Execute(null));
         menu.Items.Add("Capturar tela", null, (_, _) => viewModel.SaveScreenshotCommand.Execute(null));
-        _toggleItem = new Forms.ToolStripMenuItem("Parar gravação", null, (_, _) => viewModel.ToggleRecordingCommand.Execute(null));
+        _toggleItem = new Forms.ToolStripMenuItem(viewModel.ToggleText, null, (_, _) => viewModel.ToggleRecordingCommand.Execute(null));
         menu.Items.Add(_toggleItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => exit());
-        menu.Opening += (_, _) => _toggleItem.Text = viewModel.IsRecording ? "Parar gravação" : "Iniciar gravação";
+        menu.Opening += (_, _) =>
+        {
+            statusItem.Text = viewModel.TrayStatus;
+            _toggleItem.Text = viewModel.ToggleText;
+        };
 
         _icon = new Forms.NotifyIcon
         {
             Icon = new System.Drawing.Icon(stream),
-            Text = "PoPreyClip",
+            Text = viewModel.TrayText,
             ContextMenuStrip = menu,
             Visible = true,
         };
@@ -42,9 +52,9 @@ internal sealed class TrayIcon : IDisposable
 
         viewModel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(MainViewModel.IsRecording))
+            if (e.PropertyName == nameof(MainViewModel.TrayText))
             {
-                _icon.Text = viewModel.IsRecording ? "PoPreyClip · gravando" : viewModel.IsWaitingForGame ? "PoPreyClip · em espera" : "PoPreyClip · parado";
+                _icon.Text = viewModel.TrayText;
             }
         };
         viewModel.Updates.UpdateFound += update =>
@@ -56,6 +66,7 @@ internal sealed class TrayIcon : IDisposable
         };
         viewModel.ScreenshotSaved += info => AnnounceSaved("Captura de tela salva", info.Game);
         viewModel.ClipSaved += info => AnnounceSaved("Clipe salvo", $"{info.Game} · {viewModel.Settings.ClipSecondsText}");
+        viewModel.GameReady += AnnounceGameReady;
         viewModel.Settings.NoticeTestRequested += () =>
             Announce(viewModel.Settings.SavedNotice.Value, "Clipe salvo", "Assim o aviso aparece durante o jogo");
         window.HiddenToTray += () =>
@@ -63,7 +74,7 @@ internal sealed class TrayIcon : IDisposable
             if (!_hintShown)
             {
                 _hintShown = true;
-                _icon.ShowBalloonTip(3000, "PoPreyClip continua aberto", "A gravação segue na bandeja. Clique duas vezes no ícone para abrir.", Forms.ToolTipIcon.None);
+                _icon.ShowBalloonTip(3000, "PoPreyClip continua aberto", "A captura de clipes segue na bandeja. Clique duas vezes no ícone para abrir.", Forms.ToolTipIcon.None);
             }
         };
     }
@@ -80,12 +91,33 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    private void Announce(string style, string title, string detail)
+    /// <summary>
+    /// Like Medal's "Ready to clip": when a game is detected, says the clip capture is on and which keys to use.
+    /// Follows the same notice style as the saved files, and is skipped while the PoPreyClip window is in front.
+    /// </summary>
+    private void AnnounceGameReady(DetectedGame game)
+    {
+        if (_window.IsActive)
+        {
+            return;
+        }
+
+        var settings = _viewModel.Settings;
+        var lines = new List<string> { game.DisplayName, $"{settings.SaveClipHotkey} salva os últimos {settings.ClipSecondsText}" };
+        if (!string.IsNullOrWhiteSpace(settings.ScreenshotHotkey))
+        {
+            lines.Add($"{settings.ScreenshotHotkey} captura a tela");
+        }
+
+        Announce(settings.SavedNotice.Value, "Pronto para clipar", string.Join("\n", lines), OverlayNotice.GameGlyph, GameReadyTime);
+    }
+
+    private void Announce(string style, string title, string detail, string glyph = OverlayNotice.CheckGlyph, TimeSpan? visibleTime = null)
     {
         switch (style)
         {
             case AppConfig.NoticeOverlay:
-                OverlayNotice.Notify(title, detail);
+                OverlayNotice.Notify(title, detail, glyph, visibleTime);
                 break;
             case AppConfig.NoticeWindows:
                 _icon.ShowBalloonTip(3000, title, detail, Forms.ToolTipIcon.None);

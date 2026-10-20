@@ -13,7 +13,10 @@ public sealed class AppConfig
     public const string NoticeOff = "off";
     public const string DefaultClipSound = "duo";
     public const string DefaultScreenshotSound = "camera-soft";
+    public const string DefaultToggleRecordingHotkey = "Alt+Shift+F9";
     private const int CurrentSoundDefaults = 2;
+    private const int CurrentHotkeyDefaults = 1;
+    private static readonly string[] OldToggleRecordingHotkeys = ["Ctrl+Alt+F8", "Alt+F9"];
 
     /// <summary>Root export folder. Clips go to &lt;ClipFolder&gt;\Clips\&lt;Game&gt;\.</summary>
     public string ClipFolder { get; set; } = @"C:\PoPreyClip";
@@ -25,7 +28,7 @@ public sealed class AppConfig
     public string Hotkey { get; set; } = "F8";
 
     /// <summary>Global hotkey that starts or stops recording. Empty disables it.</summary>
-    public string ToggleRecordingHotkey { get; set; } = "Ctrl+Alt+F8";
+    public string ToggleRecordingHotkey { get; set; } = DefaultToggleRecordingHotkey;
 
     /// <summary>Global hotkey that saves a screenshot. Empty disables it.</summary>
     public string ScreenshotHotkey { get; set; } = "F12";
@@ -68,6 +71,13 @@ public sealed class AppConfig
     /// ("chime") move to the new one once; a sound picked later on purpose is kept.
     /// </summary>
     public int SoundDefaultsVersion { get; set; }
+
+    /// <summary>
+    /// Which hotkey defaults this file has seen. Older files whose start/stop hotkey is still "Ctrl+Alt+F8" (the
+    /// old default) or "Alt+F9" (which clashes with saving a clip on F9 while Alt is held) move to
+    /// <see cref="DefaultToggleRecordingHotkey"/> once; a hotkey picked later on purpose is kept.
+    /// </summary>
+    public int HotkeyDefaultsVersion { get; set; }
 
     /// <summary>
     /// Desktop app: how a saved clip or screenshot is announced while the app window is not in front.
@@ -142,6 +152,15 @@ public sealed class AppConfig
         SavedNotice = notice is NoticeWindows or NoticeOff ? notice : NoticeOverlay;
         Hotkey = string.IsNullOrWhiteSpace(Hotkey) ? "F8" : Hotkey.Trim();
         ToggleRecordingHotkey = ToggleRecordingHotkey?.Trim() ?? "";
+        if (HotkeyDefaultsVersion < CurrentHotkeyDefaults)
+        {
+            if (OldToggleRecordingHotkeys.Contains(ToggleRecordingHotkey, StringComparer.OrdinalIgnoreCase))
+            {
+                ToggleRecordingHotkey = DefaultToggleRecordingHotkey;
+            }
+
+            HotkeyDefaultsVersion = CurrentHotkeyDefaults;
+        }
         ScreenshotHotkey = ScreenshotHotkey?.Trim() ?? "";
         ClipFolder = string.IsNullOrWhiteSpace(ClipFolder) ? @"C:\PoPreyClip" : ClipFolder.Trim();
         FilePrefix ??= "";

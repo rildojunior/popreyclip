@@ -88,7 +88,7 @@
                     <DockPanel>
                         <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ToggleRecordingHotkey, Mode=TwoWay}" AllowEmpty="True" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Iniciar ou parar gravação" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Ativar ou desativar a captura de clipes" Style="{StaticResource LabelText}" />
                             <TextBlock Text="Opcional. Backspace remove o atalho." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
@@ -101,7 +101,7 @@
                         <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ScreenshotHotkey, Mode=TwoWay}" AllowEmpty="True" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Capturar tela" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Salva uma imagem PNG da tela. Funciona mesmo com a gravação parada. Backspace remove o atalho." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Salva uma imagem PNG da tela. Funciona mesmo com a captura de clipes desativada. Backspace remove o atalho." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                     <TextBlock Text="{Binding ScreenshotHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
@@ -256,7 +256,7 @@
                         <TextBlock Text="&#xE714;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Vídeo" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="Mudanças de vídeo reiniciam a gravação." Style="{StaticResource HintText}" Margin="0,6,0,16" />
+                    <TextBlock Text="Mudanças de vídeo reiniciam a captura de clipes." Style="{StaticResource HintText}" Margin="0,6,0,16" />
 
                     <DockPanel>
                         <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding CaptureOptions}" SelectedItem="{Binding Capture}" DisplayMemberPath="Label" />
@@ -322,15 +322,15 @@
                     <DockPanel Margin="0,16,0,0">
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoRecordGames}" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Gravar só quando um jogo estiver aberto" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Fora do jogo o app fica em espera, sem gastar recursos. A gravação liga sozinha quando um jogo ou app vigiado abrir e desliga quando ele fechar." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Ativar a captura de clipes só com um jogo aberto" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Fora do jogo o app fica em espera, sem gastar recursos. A captura de clipes liga sozinha quando um jogo ou app vigiado abrir e desliga quando ele fechar." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />
                     <DockPanel IsEnabled="{Binding CanChooseStartOnLaunch}">
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartRecordingOnLaunch}" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Começar a gravar ao abrir" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Ativar a captura de clipes ao abrir o app" Style="{StaticResource LabelText}" />
                             <TextBlock Text="Só vale com a opção acima desligada." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
