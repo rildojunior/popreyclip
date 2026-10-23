@@ -17,15 +17,73 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
+        <Style x:Key="GroupTitle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,40,0,14" />
+        </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" ScrollChanged="Scroller_ScrollChanged">
         <StackPanel Margin="36,4,36,36" MaxWidth="900" HorizontalAlignment="Left">
             <TextBlock Text="Configurações" Style="{StaticResource TitleText}" />
             <TextBlock Text="As alterações são salvas automaticamente." Style="{StaticResource SubtitleText}" Margin="0,4,0,24" />
 
-            <!-- Folder -->
+            <!-- ===== Geral ===== -->
+            <TextBlock x:Name="Group_geral" Tag="geral" Text="Geral" Style="{StaticResource GroupTitle}" Margin="0,0,0,14" />
+
+            <!-- Behavior -->
             <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Comportamento" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <DockPanel Margin="0,16,0,0">
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoRecordGames}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Ativar a captura de clipes só com um jogo aberto" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Fora do jogo o app fica em espera, sem gastar recursos. A captura de clipes liga sozinha quando um jogo ou app vigiado abrir e desliga quando ele fechar." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel IsEnabled="{Binding CanChooseStartOnLaunch}">
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartRecordingOnLaunch}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Ativar a captura de clipes ao abrir o app" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Só vale com a opção acima desligada." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartWithWindows}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Iniciar com o Windows" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Abre sozinho ao ligar o PC, já escondido na bandeja." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding MinimizeToTray}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Continuar na bandeja ao fechar a janela" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Para sair de verdade, use Sair no ícone da bandeja." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding DetectFullscreenApps}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Detectar jogos em tela cheia" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Qualquer programa em tela cheia ou janela sem borda conta como jogo." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Folder -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
@@ -63,49 +121,89 @@
                 </StackPanel>
             </Border>
 
-            <!-- Hotkeys -->
+            <!-- ===== Captura ===== -->
+            <TextBlock x:Name="Group_captura" Tag="captura" Text="Captura" Style="{StaticResource GroupTitle}" />
+
+            <!-- Clip -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Duração do clipe" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="Quanto tempo antes do atalho entra no clipe." Style="{StaticResource HintText}" Margin="0,6,0,14" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="90" />
+                        </Grid.ColumnDefinitions>
+                        <Slider Minimum="5" Maximum="300" TickFrequency="5" IsSnapToTickEnabled="True" SmallChange="5" LargeChange="15"
+                                Value="{Binding ClipSeconds, Mode=TwoWay, Delay=150}" />
+                        <TextBlock Grid.Column="1" Text="{Binding ClipSecondsText}" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Video -->
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Teclas de atalho" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                        <TextBlock Text="&#xE714;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Vídeo" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="Clique no campo e pressione a combinação de teclas. Funcionam mesmo dentro do jogo. Esc cancela."
-                               Style="{StaticResource HintText}" Margin="0,6,0,16" />
+                    <TextBlock Text="Mudanças de vídeo reiniciam a captura de clipes." Style="{StaticResource HintText}" Margin="0,6,0,16" />
 
                     <DockPanel>
-                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding SaveClipHotkey, Mode=TwoWay}" />
+                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding CaptureOptions}" SelectedItem="{Binding Capture}" DisplayMemberPath="Label" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Salvar clipe" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Salva os últimos segundos gravados." Style="{StaticResource HintText}" />
+                            <TextBlock Text="O que gravar" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Só a janela do jogo: outras janelas, alt-tab e a área de trabalho não aparecem no clipe. Sem jogo aberto, grava o monitor. Se um jogo sair preto ou parado, escolha Monitor inteiro." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
-                    <TextBlock Text="{Binding SaveHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Visibility="{Binding SaveHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
-
                     <Border Style="{StaticResource Divider}" />
 
                     <DockPanel>
-                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ToggleRecordingHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding EncoderOptions}" SelectedItem="{Binding Encoder}" DisplayMemberPath="Label" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Ativar ou desativar a captura de clipes" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Opcional. Backspace remove o atalho." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Codificador" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Use o da sua placa de vídeo para não pesar no jogo." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
-                    <TextBlock Text="{Binding ToggleHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Visibility="{Binding ToggleHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
-
                     <Border Style="{StaticResource Divider}" />
-
                     <DockPanel>
-                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ScreenshotHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding FpsOptions}" SelectedItem="{Binding Fps}" DisplayMemberPath="Label" />
                         <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Capturar tela" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Salva uma imagem PNG da tela. Funciona mesmo com a captura de clipes desativada. Backspace remove o atalho." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Quadros por segundo" Style="{StaticResource LabelText}" />
                         </StackPanel>
                     </DockPanel>
-                    <TextBlock Text="{Binding ScreenshotHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Visibility="{Binding ScreenshotHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding Monitors}" SelectedItem="{Binding Monitor}" DisplayMemberPath="Label" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Monitor gravado" Style="{StaticResource LabelText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Right" Width="300">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Minimum="12" Maximum="37" Value="{Binding Quality, Mode=TwoWay, Delay=200}" IsSnapToTickEnabled="True" TickFrequency="1" />
+                        </Grid>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Qualidade" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="{Binding QualityText}" Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ShowCursor}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Mostrar o cursor do mouse" Style="{StaticResource LabelText}" />
+                        </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
 
@@ -154,28 +252,193 @@
                 </StackPanel>
             </Border>
 
-            <!-- Clip -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <!-- ===== Atalhos e voz ===== -->
+            <TextBlock x:Name="Group_atalhos" Tag="atalhos" Text="Atalhos e voz" Style="{StaticResource GroupTitle}" />
+
+            <!-- Hotkeys -->
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Duração do clipe" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                        <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Teclas de atalho" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="Quanto tempo antes do atalho entra no clipe." Style="{StaticResource HintText}" Margin="0,6,0,14" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="90" />
-                        </Grid.ColumnDefinitions>
-                        <Slider Minimum="5" Maximum="300" TickFrequency="5" IsSnapToTickEnabled="True" SmallChange="5" LargeChange="15"
-                                Value="{Binding ClipSeconds, Mode=TwoWay, Delay=150}" />
-                        <TextBlock Grid.Column="1" Text="{Binding ClipSecondsText}" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    </Grid>
+                    <TextBlock Text="Clique no campo e pressione a combinação de teclas. Funcionam mesmo dentro do jogo. Esc cancela."
+                               Style="{StaticResource HintText}" Margin="0,6,0,16" />
+
+                    <DockPanel>
+                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding SaveClipHotkey, Mode=TwoWay}" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Salvar clipe" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Salva os últimos segundos gravados." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="{Binding SaveHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding SaveHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                    <Border Style="{StaticResource Divider}" />
+
+                    <DockPanel>
+                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ToggleRecordingHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Ativar ou desativar a captura de clipes" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Opcional. Backspace remove o atalho." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="{Binding ToggleHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding ToggleHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                    <Border Style="{StaticResource Divider}" />
+
+                    <DockPanel>
+                        <controls:HotkeyBox DockPanel.Dock="Right" Hotkey="{Binding ScreenshotHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Capturar tela" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Salva uma imagem PNG da tela. Funciona mesmo com a captura de clipes desativada. Backspace remove o atalho." Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="{Binding ScreenshotHotkeyError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding ScreenshotHotkeyError, Converter={StaticResource NotEmptyToVisibility}}" />
                 </StackPanel>
             </Border>
 
+            <!-- Voice command -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" DataContext="{Binding Voice}">
+                <Border.Resources>
+                    <DataTemplate x:Key="VoiceChip">
+                        <Border Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="16" Padding="14,2,4,2" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Display}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button Style="{StaticResource IconButton}" Content="&#xE711;" FontSize="10" Width="26" Height="26" Margin="6,0,0,0"
+                                        Command="{Binding RemoveCommand}" ToolTip="Remover" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                    <ItemsPanelTemplate x:Key="ChipPanel">
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </Border.Resources>
+                <StackPanel>
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Enabled}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="Comando de voz" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,6,0,0"
+                               Text="Diga o nome do assistente e um comando, por exemplo &quot;Oni, clipa isso&quot;, para salvar um clipe. Só escuta com a captura de clipes ativa. Usa o microfone padrão do Windows, funciona sem internet e nada sai do seu PC." />
+                    <Border Background="{StaticResource DangerSoftBrush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
+                            Visibility="{Binding Problem, Converter={StaticResource NotEmptyToVisibility}}">
+                        <TextBlock Text="{Binding Problem}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" TextWrapping="Wrap" />
+                    </Border>
+
+                    <!-- Assistant names -->
+                    <TextBlock Text="Nome do assistente" Style="{StaticResource LabelText}" Margin="0,16,0,0" />
+                    <TextBlock Text="Vem antes de cada comando, para conversas normais não salvarem clipes sem querer. Prefira um nome curto e fácil de pronunciar."
+                               Style="{StaticResource HintText}" Margin="0,2,0,10" />
+                    <ItemsControl ItemsSource="{Binding Names}" ItemTemplate="{StaticResource VoiceChip}" ItemsPanel="{StaticResource ChipPanel}" />
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Outro nome para o assistente">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding AddNameCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Grid.Column="1" Margin="8,0,0,0" Command="{Binding AddNameCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Adicionar nome" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding NamesError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding NamesError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                    <!-- Commands -->
+                    <Border Style="{StaticResource Divider}" />
+                    <TextBlock Text="Comandos" Style="{StaticResource LabelText}" />
+                    <TextBlock Text="O que você fala depois do nome. Qualquer um deles salva um clipe com a duração escolhida em Duração do clipe."
+                               Style="{StaticResource HintText}" Margin="0,2,0,10" />
+                    <ItemsControl ItemsSource="{Binding Commands}" ItemTemplate="{StaticResource VoiceChip}" ItemsPanel="{StaticResource ChipPanel}" />
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding NewCommand, UpdateSourceTrigger=PropertyChanged}" ToolTip="Outro comando, por exemplo &quot;salva o clipe&quot;">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding AddVoiceCommandCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Grid.Column="1" Margin="8,0,0,0" Command="{Binding AddVoiceCommandCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Adicionar comando" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding CommandsError}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding CommandsError, Converter={StaticResource NotEmptyToVisibility}}" />
+                    <TextBlock Text="{Binding OneWordWarning}" Foreground="{StaticResource WarningBrush}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding OneWordWarning, Converter={StaticResource NotEmptyToVisibility}}" />
+                    <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Frases que salvam um clipe" FontSize="11.5" Foreground="{StaticResource TextFaintBrush}" />
+                            <TextBlock Text="{Binding PhrasesText}" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Sensitivity -->
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <ComboBox DockPanel.Dock="Right" Width="250" ItemsSource="{Binding SensitivityOptions}" SelectedItem="{Binding Sensitivity}" DisplayMemberPath="Label" />
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Sensibilidade" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Se o comando não funcionar, tente Flexível. Se clipar sem querer, tente Rigorosa. O teste abaixo mostra a confiança de cada frase."
+                                       Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Test -->
+                    <Border Style="{StaticResource Divider}" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Command="{Binding TestCommand}" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Testar comando de voz" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Style="{StaticResource RowLabel}">
+                            <TextBlock Text="Teste" Style="{StaticResource LabelText}" />
+                            <TextBlock Text="Escuta por 10 segundos e mostra o que entendeu. Não salva clipes e funciona com a opção desligada."
+                                       Style="{StaticResource HintText}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="{Binding TestText}" FontSize="12.5" Margin="0,10,0,0" TextWrapping="Wrap"
+                               Visibility="{Binding TestText, Converter={StaticResource NotEmptyToVisibility}}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TestAccepted}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Avisos e sons ===== -->
+            <TextBlock x:Name="Group_avisos" Tag="avisos" Text="Avisos e sons" Style="{StaticResource GroupTitle}" />
+
             <!-- Saved notice -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE8BD;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
@@ -249,120 +512,11 @@
                 </StackPanel>
             </Border>
 
-            <!-- Video -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE714;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Vídeo" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
-                    </StackPanel>
-                    <TextBlock Text="Mudanças de vídeo reiniciam a captura de clipes." Style="{StaticResource HintText}" Margin="0,6,0,16" />
-
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding CaptureOptions}" SelectedItem="{Binding Capture}" DisplayMemberPath="Label" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="O que gravar" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Só a janela do jogo: outras janelas, alt-tab e a área de trabalho não aparecem no clipe. Sem jogo aberto, grava o monitor. Se um jogo sair preto ou parado, escolha Monitor inteiro." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding EncoderOptions}" SelectedItem="{Binding Encoder}" DisplayMemberPath="Label" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Codificador" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Use o da sua placa de vídeo para não pesar no jogo." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding FpsOptions}" SelectedItem="{Binding Fps}" DisplayMemberPath="Label" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Quadros por segundo" Style="{StaticResource LabelText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding Monitors}" SelectedItem="{Binding Monitor}" DisplayMemberPath="Label" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Monitor gravado" Style="{StaticResource LabelText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <Grid DockPanel.Dock="Right" Width="300">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Slider Minimum="12" Maximum="37" Value="{Binding Quality, Mode=TwoWay, Delay=200}" IsSnapToTickEnabled="True" TickFrequency="1" />
-                        </Grid>
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Qualidade" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="{Binding QualityText}" Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ShowCursor}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Mostrar o cursor do mouse" Style="{StaticResource LabelText}" />
-                        </StackPanel>
-                    </DockPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Behavior -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="Comportamento" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
-                    </StackPanel>
-                    <DockPanel Margin="0,16,0,0">
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoRecordGames}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Ativar a captura de clipes só com um jogo aberto" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Fora do jogo o app fica em espera, sem gastar recursos. A captura de clipes liga sozinha quando um jogo ou app vigiado abrir e desliga quando ele fechar." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel IsEnabled="{Binding CanChooseStartOnLaunch}">
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartRecordingOnLaunch}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Ativar a captura de clipes ao abrir o app" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Só vale com a opção acima desligada." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding StartWithWindows}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Iniciar com o Windows" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Abre sozinho ao ligar o PC, já escondido na bandeja." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding MinimizeToTray}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Continuar na bandeja ao fechar a janela" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Para sair de verdade, use Sair no ícone da bandeja." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding DetectFullscreenApps}" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Detectar jogos em tela cheia" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Qualquer programa em tela cheia ou janela sem borda conta como jogo." Style="{StaticResource HintText}" />
-                        </StackPanel>
-                    </DockPanel>
-                </StackPanel>
-            </Border>
+            <!-- ===== Jogos ===== -->
+            <TextBlock x:Name="Group_jogos" Tag="jogos" Text="Jogos" Style="{StaticResource GroupTitle}" />
 
             <!-- Watched games and apps -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0" DataContext="{Binding Watched}">
+            <Border Style="{StaticResource Card}" DataContext="{Binding Watched}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
@@ -422,8 +576,11 @@
                 </StackPanel>
             </Border>
 
+            <!-- ===== Atualizações ===== -->
+            <TextBlock x:Name="Group_atualizacoes" Tag="atualizacoes" Text="Atualizações" Style="{StaticResource GroupTitle}" />
+
             <!-- Updates -->
-            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />

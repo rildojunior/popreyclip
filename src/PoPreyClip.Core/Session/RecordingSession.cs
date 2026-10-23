@@ -16,6 +16,9 @@ public sealed record ClipSavedInfo(string Path, string Game);
 /// </summary>
 public sealed class RecordingSession : IDisposable
 {
+    /// <summary>A second clip request this soon after the previous one is ignored, like Medal's clip cooldown.</summary>
+    public static readonly TimeSpan ClipCooldown = TimeSpan.FromSeconds(2);
+
     private readonly ConfigStore _store;
     private readonly GameDetector _detector;
     private readonly object _gate = new();
@@ -39,6 +42,9 @@ public sealed class RecordingSession : IDisposable
     private int _restarting;
 
     private bool _levelPreview;
+
+    /// <summary>When the last clip was asked for (hotkey, voice or button), to ignore a second request right after it.</summary>
+    private long _lastClipRequestTick = long.MinValue / 2;
 
     private AudioLevelMonitor? _levelMonitor;
 
@@ -348,6 +354,14 @@ public sealed class RecordingSession : IDisposable
             return null;
         }
 
+        var now = Environment.TickCount64;
+        if (now - Interlocked.Read(ref _lastClipRequestTick) < (long)ClipCooldown.TotalMilliseconds)
+        {
+            Log.Info("Pedido de clipe ignorado: o anterior foi há menos de 2 segundos.");
+            return null;
+        }
+
+        Interlocked.Exchange(ref _lastClipRequestTick, now);
         var game = _detector.ClipGameName;
         Log.Info($"Salvando clipe de {_store.Current.ClipSeconds}s ({game})...");
         try

@@ -102,6 +102,39 @@
                     <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Tag="&#xE767;" Content="Áudio" IsChecked="{Binding IsAudioPage}" />
                     <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Tag="&#xE714;" Content="Clipes" IsChecked="{Binding IsClipsPage}" />
                     <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Tag="&#xE713;" Content="Configurações" IsChecked="{Binding IsSettingsPage}" />
+
+                    <!-- Settings groups: a click scrolls the settings page to the group -->
+                    <ItemsControl ItemsSource="{Binding Settings.Sections}" Margin="0,2,0,0"
+                                  Visibility="{Binding IsSettingsPage, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding GoCommand}" AutomationProperties.Name="{Binding Title}" Cursor="Hand" FocusVisualStyle="{x:Null}" Margin="0,1">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Root" Background="Transparent" CornerRadius="6" Padding="44,6,10,6">
+                                                <Grid>
+                                                    <Border x:Name="Indicator" Width="2" Height="14" CornerRadius="1" Background="{StaticResource AccentBrush}"
+                                                            HorizontalAlignment="Left" Margin="-14,0,0,0" Visibility="Collapsed" />
+                                                    <TextBlock x:Name="Label" Text="{Binding Title}" FontSize="13" Foreground="{StaticResource TextMutedBrush}" />
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Root" Property="Background" Value="{StaticResource HoverBrush}" />
+                                                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource TextBrush}" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                    <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="Label" Property="Foreground" Value="{StaticResource TextBrush}" />
+                                                    <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </DockPanel>
         </Border>

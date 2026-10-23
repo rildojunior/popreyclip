@@ -8,6 +8,7 @@ using PoPreyClip.Games;
 using PoPreyClip.Hotkeys;
 using PoPreyClip.Library;
 using PoPreyClip.Session;
+using PoPreyClip.Voice;
 
 namespace PoPreyClip.App.ViewModels;
 
@@ -35,6 +36,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _toastTimer;
     private readonly ClipSoundPlayer _sounds = new();
+    private readonly VoiceClipTrigger _voice;
     private AppPage _page = AppPage.Home;
     private bool _isRecording;
     private bool _isBusy;
@@ -59,7 +61,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Clips.ScheduleRefresh();
         };
         Updates = new UpdatesViewModel(store, exitForUpdate);
-        Settings = new SettingsViewModel(store, SetHotkey, _sounds) { Updates = Updates };
+        _voice = new VoiceClipTrigger(store, session);
+        Settings = new SettingsViewModel(store, SetHotkey, _sounds)
+        {
+            Updates = Updates,
+            Voice = new VoiceCommandsViewModel(store, _voice, _dispatcher),
+        };
+        Settings.SectionNavigationRequested += () => Page = AppPage.Settings;
 
         ToggleRecordingCommand = new AsyncRelayCommand(ToggleRecordingAsync, () => !IsBusy);
         SaveClipCommand = new AsyncRelayCommand(SaveClipAsync, () => IsRecording);
@@ -544,5 +552,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         Log.Logged -= OnLogged;
         _toastTimer.Stop();
+        _voice.Dispose();
     }
 }

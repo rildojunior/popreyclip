@@ -11,6 +11,25 @@ public sealed record Option<T>(T Value, string Label)
     public override string ToString() => Label;
 }
 
+/// <summary>A group of settings cards, listed under "Configurações" in the sidebar.</summary>
+public sealed class SettingsSection(string id, string title, Action<string> go) : ObservableObject
+{
+    private bool _isCurrent;
+
+    public string Id { get; } = id;
+
+    public string Title { get; } = title;
+
+    public ICommand GoCommand { get; } = new RelayCommand(() => go(id));
+
+    /// <summary>The group shown at the top of the settings page right now.</summary>
+    public bool IsCurrent
+    {
+        get => _isCurrent;
+        set => SetProperty(ref _isCurrent, value);
+    }
+}
+
 public sealed class SettingsViewModel : ObservableObject
 {
     public const string SaveClipHotkeyName = "save-clip";
@@ -24,6 +43,7 @@ public sealed class SettingsViewModel : ObservableObject
     private string? _saveHotkeyError;
     private string? _toggleHotkeyError;
     private string? _screenshotHotkeyError;
+    private string? _currentSection;
 
     /// <param name="applyHotkey">Registers a hotkey by name and returns an error message, or null.</param>
     public SettingsViewModel(ConfigStore store, Func<string, string, string?> applyHotkey, ClipSoundPlayer sounds)
@@ -43,10 +63,54 @@ public sealed class SettingsViewModel : ObservableObject
         OpenConfigFileCommand = new RelayCommand(() => ClipLibrary.Play(_store.FilePath));
         OpenLogsCommand = new RelayCommand(() => ClipLibrary.OpenFolder(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PoPreyClip", "logs")));
+        Sections =
+        [
+            new("geral", "Geral", GoToSection),
+            new("captura", "Captura", GoToSection),
+            new("atalhos", "Atalhos e voz", GoToSection),
+            new("avisos", "Avisos e sons", GoToSection),
+            new("jogos", "Jogos", GoToSection),
+            new("atualizacoes", "Atualizações", GoToSection),
+        ];
+        CurrentSection = Sections[0].Id;
         Monitors = System.Windows.Forms.Screen.AllScreens
             .Select((s, i) => new Option<int>(i, $"Monitor {i + 1}{(s.Primary ? " (principal)" : "")} · {s.Bounds.Width}x{s.Bounds.Height}"))
             .ToList();
     }
+
+    // ---- Sections ----
+
+    /// <summary>The six groups of the page, listed in the sidebar while the settings page is open.</summary>
+    public IReadOnlyList<SettingsSection> Sections { get; }
+
+    /// <summary>Asks the page to scroll to a group (the sidebar list was clicked).</summary>
+    public event Action<string>? ScrollToSectionRequested;
+
+    /// <summary>Group at the top of the page; highlighted in the sidebar. The page updates it while scrolling.</summary>
+    public string? CurrentSection
+    {
+        get => _currentSection;
+        set
+        {
+            if (SetProperty(ref _currentSection, value))
+            {
+                foreach (var section in Sections)
+                {
+                    section.IsCurrent = section.Id == value;
+                }
+            }
+        }
+    }
+
+    private void GoToSection(string id)
+    {
+        CurrentSection = id;
+        SectionNavigationRequested?.Invoke();
+        ScrollToSectionRequested?.Invoke(id);
+    }
+
+    /// <summary>Raised before scrolling to a group, so the window can switch to the settings page.</summary>
+    public event Action? SectionNavigationRequested;
 
     public ICommand BrowseFolderCommand { get; }
 
@@ -528,6 +592,9 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public string ConfigPath => _store.FilePath;
+
+    /// <summary>"Comando de voz" card.</summary>
+    public VoiceCommandsViewModel? Voice { get; init; }
 
     /// <summary>Update checks shown in the "Atualizações" card (shared with the banner).</summary>
     public UpdatesViewModel? Updates { get; init; }

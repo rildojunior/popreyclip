@@ -107,6 +107,9 @@ public sealed class AppConfig
 
     public AudioConfig Audio { get; set; } = new();
 
+    /// <summary>Desktop app: save a clip by saying the assistant's name and a command, e.g. "Oni, clipa isso".</summary>
+    public VoiceConfig Voice { get; set; } = new();
+
     /// <summary>Treat any fullscreen or borderless foreground app as a game, even if it is not listed in <see cref="Games"/>.</summary>
     public bool DetectFullscreenApps { get; set; } = true;
 
@@ -166,6 +169,8 @@ public sealed class AppConfig
         FilePrefix ??= "";
         Video ??= new VideoConfig();
         Audio ??= new AudioConfig();
+        Voice ??= new VoiceConfig();
+        Voice.Normalize();
         Video.Capture = string.Equals(Video.Capture, VideoConfig.CaptureMonitor, StringComparison.OrdinalIgnoreCase)
             ? VideoConfig.CaptureMonitor
             : VideoConfig.CaptureGameWindow;
@@ -255,6 +260,52 @@ public sealed class AudioSourceConfig
 
     /// <summary>Microphone only: "Auto" for the default device, or part of the device name.</summary>
     public string? Device { get; set; }
+}
+
+public sealed class VoiceConfig
+{
+    public const string SensitivityStrict = "strict";
+    public const string SensitivityNormal = "normal";
+    public const string SensitivityFlexible = "flexible";
+    public const string DefaultAssistantName = "oni";
+    public static readonly string[] DefaultCommands = ["clipa isso", "faz um clipe"];
+
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Words said before every command, like Medal's "Medal clip that". A command said alone in a conversation does
+    /// not save a clip.
+    /// </summary>
+    public List<string> AssistantNames { get; set; } = [DefaultAssistantName];
+
+    public List<string> Commands { get; set; } = [.. DefaultCommands];
+
+    /// <summary>
+    /// Lowest recognition confidence that saves a clip: <see cref="SensitivityStrict"/> (high only),
+    /// <see cref="SensitivityNormal"/> (medium and high) or <see cref="SensitivityFlexible"/> (low too).
+    /// </summary>
+    public string Sensitivity { get; set; } = SensitivityNormal;
+
+    public void Normalize()
+    {
+        AssistantNames = Clean(AssistantNames);
+        if (AssistantNames.Count == 0)
+        {
+            AssistantNames = [DefaultAssistantName];
+        }
+
+        Commands = Clean(Commands);
+        if (Commands.Count == 0)
+        {
+            Commands = [.. DefaultCommands];
+        }
+
+        var sensitivity = Sensitivity?.Trim().ToLowerInvariant();
+        Sensitivity = sensitivity is SensitivityStrict or SensitivityFlexible ? sensitivity : SensitivityNormal;
+    }
+
+    private static List<string> Clean(List<string>? items) =>
+        (items ?? []).Select(PoPreyClip.Voice.VoicePhrases.Normalize).Where(t => t.Length > 0).Distinct().ToList();
 }
 
 public static class AudioSourceIds

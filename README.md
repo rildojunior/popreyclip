@@ -42,6 +42,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
+- 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo. O nome do assistente e os comandos podem ser trocados, funciona sem internet e vem desligado.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift, Ctrl ou Alt segurados, e podem ser trocados nas configurações.
 - 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
@@ -107,6 +108,15 @@ O clipe vai para:
 C:\PoPreyClip\Clips\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
 ```
 
+### Salvar um clipe com a voz
+
+1. Ligue em **Configurações → Comando de voz**.
+2. Com a captura de clipes ativa, diga o nome do assistente e um comando: **"Oni, clipa isso"** ou **"Oni, faz um clipe"**.
+
+No mesmo cartão você troca o nome do assistente, adiciona comandos, escolhe a **Sensibilidade** (Rigorosa, Normal ou Flexível) e usa **Testar comando de voz** para ver o que o PoPreyClip entendeu e com qual confiança. O nome antes do comando evita que uma conversa normal salve um clipe sem querer.
+
+O comando de voz usa o reconhecimento de fala do próprio Windows, com o microfone padrão do Windows, e só escuta enquanto a captura de clipes está ativa. Dois pedidos de clipe com menos de 2 segundos de diferença, pela voz ou pelo atalho, salvam um clipe só.
+
 ### Tirar uma captura de tela
 
 Aperte **F12**. A imagem vai para `C:\PoPreyClip\Screenshots\<Nome do Jogo>\` e também fica copiada, pronta para colar com **Ctrl+V**.
@@ -139,6 +149,8 @@ Na tela **Áudio**:
 > Os players comuns tocam só a primeira faixa (a "Mix"). Para ajustar o volume de cada faixa depois de gravar, use o **editor de clipes** do PoPreyClip (botão **Editar** na tela **Clipes**).
 
 ### Mudar a pasta, os atalhos e o vídeo
+
+As opções ficam numa página só, separadas em seis grupos: **Geral**, **Captura**, **Atalhos e voz**, **Avisos e sons**, **Jogos** e **Atualizações**. Ao abrir **Configurações**, os grupos aparecem embaixo dele no menu da esquerda: clique em um para ir direto até ele. O grupo que você está vendo fica destacado.
 
 Na tela **Configurações** você troca:
 
@@ -206,6 +218,16 @@ O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo n�
 Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Teclas de atalho**.
 
 Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por exemplo) não atrapalha. A tecla Windows sim, porque o Windows usa essas combinações para outras coisas. Se outro atalho do PoPreyClip usar exatamente a combinação apertada, vale o dele: com **F9** salvando o clipe e **Alt+Shift+F9** ativando a captura de clipes, Alt+F9 salva o clipe e Alt+Shift+F9 ativa ou desativa a captura.
+</details>
+
+<details>
+<summary><b>O comando de voz não funciona</b></summary>
+
+- Use **Testar comando de voz** em **Configurações → Comando de voz** para ver o que foi entendido.
+- O PoPreyClip escuta o **microfone padrão do Windows**. Confira qual é em **Configurações do Windows → Sistema → Som → Entrada**.
+- Se aparecer o aviso de que falta o reconhecimento de fala em português, instale em **Configurações do Windows → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Fala**.
+- Se o Windows bloquear o microfone, libere em **Privacidade e segurança → Microfone → Permitir que aplicativos da área de trabalho acessem o microfone**.
+- Se a confiança vier baixa, mude a **Sensibilidade** para Flexível ou troque o nome do assistente por outro mais fácil de reconhecer.
 </details>
 
 <details>
@@ -285,7 +307,7 @@ O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml
 
 ## 🔒 Privacidade
 
-O PoPreyClip funciona 100% no seu computador. Ele não tem conta, não envia nada para a internet e só grava o que fica no buffer temporário enquanto você não salva um clipe.
+O PoPreyClip funciona 100% no seu computador. Ele não tem conta, não envia nada para a internet (nem o comando de voz, que é reconhecido no próprio Windows) e só grava o que fica no buffer temporário enquanto você não salva um clipe.
 
 As configurações ficam em `%APPDATA%\PoPreyClip\config.json` e os logs em `%LOCALAPPDATA%\PoPreyClip\logs`.
 
