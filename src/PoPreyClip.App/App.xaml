@@ -12,6 +12,8 @@
             <local:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <local:NotEmptyToVisibilityConverter x:Key="NotEmptyToVisibility" />
             <local:InvertBoolConverter x:Key="InvertBool" />
+            <local:ColumnsForWidthConverter x:Key="ColumnsForWidth" />
+            <local:ScaleConverter x:Key="Scale" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

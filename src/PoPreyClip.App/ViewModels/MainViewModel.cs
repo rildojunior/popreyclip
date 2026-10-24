@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Globalization;
 using PoPreyClip.App.Controls;
+using PoPreyClip.Clips;
 using PoPreyClip.Config;
 using PoPreyClip.Games;
 using PoPreyClip.Hotkeys;
@@ -60,6 +62,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ShowNotice(overwrote ? "Clipe editado e substituído" : "Clipe editado salvo como novo vídeo");
             Clips.ScheduleRefresh();
         };
+        Clips.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ClipsViewModel.Summary))
+            {
+                UpdateGameStats();
+            }
+        };
         Updates = new UpdatesViewModel(store, exitForUpdate);
         _voice = new VoiceClipTrigger(store, session);
         Settings = new SettingsViewModel(store, SetHotkey, _sounds)
@@ -99,6 +108,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         });
         CloseToastCommand = new RelayCommand(() => ToastMessage = null);
+        GameActionCommand = new RelayCommand(() =>
+        {
+            if (_session.CurrentGame is { } game)
+            {
+                Clips.OpenGameFolder(ClipPathBuilder.SanitizeFolderName(game.DisplayName));
+            }
+            else
+            {
+                Settings.Sections.First(s => s.Id == "jogos").GoCommand.Execute(null);
+            }
+        });
         _toastTimer = new DispatcherTimer(TimeSpan.FromSeconds(7), DispatcherPriority.Normal, (_, _) =>
         {
             _toastTimer!.Stop();
@@ -211,6 +231,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _page, value))
             {
+                if (value == AppPage.Home)
+                {
+                    // "há 5 min" moves on while the home page is not visible.
+                    UpdateGameStats();
+                }
+
                 OnPropertyChanged(nameof(IsHomePage));
                 OnPropertyChanged(nameof(IsAudioPage));
                 OnPropertyChanged(nameof(IsClipsPage));
@@ -362,6 +388,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return string.Join(" · ", parts);
         }
     }
+
+    /// <summary>"Jogo atual" card: open the game's clip folder, or (no game) go to Configurações → Jogos.</summary>
+    public ICommand GameActionCommand { get; }
+
+    public string GameActionText => IsGameOpen ? "Abrir pasta do jogo" : "Meu jogo não foi detectado";
+
+    /// <summary>First number of the card: clips of the open game, or of every game.</summary>
+    public string GameStatValue { get; private set; } = "0";
+
+    public string GameStatLabel { get; private set; } = "";
+
+    /// <summary>Second number: when the last clip of the game was saved, or the space all clips use.</summary>
+    public string GameStat2Value { get; private set; } = "";
+
+    public string GameStat2Label { get; private set; } = "";
 
     /// <summary>A game (or watched app) is open right now.</summary>
     public bool IsGameOpen => _session.CurrentGame is not null;
@@ -532,6 +573,46 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CurrentGame = game is null ? "Nenhum jogo detectado" : game.DisplayName;
         OnPropertyChanged(nameof(TrayText));
         OnPropertyChanged(nameof(IsGameOpen));
+        OnPropertyChanged(nameof(GameActionText));
+        UpdateGameStats();
+    }
+
+    private void UpdateGameStats()
+    {
+        var library = Clips.Library.Where(c => !c.IsScreenshot).ToList();
+        if (_session.CurrentGame is { } game)
+        {
+            var folder = ClipPathBuilder.SanitizeFolderName(game.DisplayName);
+            var ofGame = library.Where(c => string.Equals(c.Game, folder, StringComparison.OrdinalIgnoreCase)).ToList();
+            GameStatValue = ofGame.Count.ToString(CultureInfo.CurrentCulture);
+            GameStatLabel = ofGame.Count == 1 ? "clipe deste jogo" : "clipes deste jogo";
+            GameStat2Value = ofGame.Count == 0 ? "Nenhum" : Ago(ofGame.Max(c => c.Created));
+            GameStat2Label = "último clipe";
+        }
+        else
+        {
+            GameStatValue = library.Count.ToString(CultureInfo.CurrentCulture);
+            GameStatLabel = library.Count == 1 ? "clipe salvo" : "clipes salvos";
+            GameStat2Value = ClipItemViewModel.FormatSize(Clips.Library.Sum(c => c.SizeBytes));
+            GameStat2Label = "ocupados na pasta";
+        }
+
+        OnPropertyChanged(nameof(GameStatValue));
+        OnPropertyChanged(nameof(GameStatLabel));
+        OnPropertyChanged(nameof(GameStat2Value));
+        OnPropertyChanged(nameof(GameStat2Label));
+    }
+
+    /// <summary>"agora", "há 5 min", "há 2 h", "ontem", "há 3 dias" or the date.</summary>
+    private static string Ago(DateTime time)
+    {
+        var elapsed = DateTime.Now - time;
+        return elapsed.TotalMinutes < 1 ? "Agora"
+            : elapsed.TotalHours < 1 ? $"Há {(int)elapsed.TotalMinutes} min"
+            : elapsed.TotalDays < 1 ? $"Há {(int)elapsed.TotalHours} h"
+            : elapsed.TotalDays < 2 ? "Ontem"
+            : elapsed.TotalDays < 7 ? $"Há {(int)elapsed.TotalDays} dias"
+            : time.ToString("dd/MM/yyyy", CultureInfo.CurrentCulture);
     }
 
     private void UpdateTracks()

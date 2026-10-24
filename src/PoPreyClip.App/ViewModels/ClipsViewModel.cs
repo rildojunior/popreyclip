@@ -201,6 +201,16 @@ public sealed class ClipsViewModel : ObservableObject
 
     internal AppConfig Config => _store.Current;
 
+    /// <summary>Every clip and screenshot found, newest first.</summary>
+    internal IEnumerable<ClipInfo> Library => _all.Select(c => c.Info);
+
+    /// <summary>Opens the clips folder of one game (its folder name, as in <see cref="ClipInfo.Game"/>).</summary>
+    internal void OpenGameFolder(string game)
+    {
+        var folder = Path.Combine(ClipLibrary.ClipsRoot(_store.Current), game);
+        ClipLibrary.OpenFolder(Directory.Exists(folder) ? folder : _store.Current.ClipFolder);
+    }
+
     /// <summary>Raised after the editor saves a clip, with the saved file and whether it replaced the original.</summary>
     public event Action<string, bool>? EditSaved;
 

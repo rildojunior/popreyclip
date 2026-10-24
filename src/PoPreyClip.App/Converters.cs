@@ -60,3 +60,27 @@ public sealed class InvertBoolConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 }
+
+/// <summary>
+/// How many columns of at least the parameter's width (in pixels, gap included) fit in the bound width, so a grid of
+/// cards fills the whole row instead of leaving a gap on the right.
+/// </summary>
+public sealed class ColumnsForWidthConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var minimum = double.Parse((string)parameter!, CultureInfo.InvariantCulture);
+        return value is double width && width > 0 ? Math.Max(1, (int)(width / minimum)) : 1;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
+/// <summary>The bound width times the parameter, e.g. 0.5625 for a 16:9 thumbnail height.</summary>
+public sealed class ScaleConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is double size ? size * double.Parse((string)parameter!, CultureInfo.InvariantCulture) : 0.0;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}
