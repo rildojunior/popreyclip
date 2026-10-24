@@ -15,4 +15,16 @@
     <InternalsVisibleTo Include="PoPreyClip" />
   </ItemGroup>
 
+  <!--
+    Voice command: Whisper (whisper.cpp, MIT) through Whisper.net. Only the 64-bit Windows CPU libraries (about 2 MB)
+    go inside the app, as embedded files written to %LOCALAPPDATA%\PoPreyClip\voz\lib when the voice command is
+    used; the speech model is downloaded at that moment (see Voice\VoiceAddon.cs).
+  -->
+  <ItemGroup>
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageDownload Include="Whisper.net.Runtime" Version="[1.9.1]" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)whisper.net.runtime\1.9.1\build\win-x64\*.dll"
+                      LogicalName="whisper\%(Filename)%(Extension)" Visible="false" />
+  </ItemGroup>
+
 </Project>

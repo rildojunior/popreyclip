@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Net.Http;
 using System.Windows.Input;
 using System.Windows.Threading;
 using PoPreyClip.Config;
@@ -44,6 +45,7 @@ public sealed class VoiceCommandsViewModel : ObservableObject
         _problem = trigger.Problem;
         trigger.ProblemChanged += problem => _dispatcher.InvokeAsync(() => Problem = problem);
         store.Changed += _ => _dispatcher.InvokeAsync(Load);
+        VoiceAddon.Changed += () => _dispatcher.InvokeAsync(() => OnPropertyChanged(nameof(DownloadText)));
         Load();
     }
 
@@ -56,8 +58,17 @@ public sealed class VoiceCommandsViewModel : ObservableObject
         {
             _store.Update(c => c.Voice.Enabled = value);
             OnPropertyChanged();
+            if (value)
+            {
+                _ = DownloadAsync();
+            }
         }
     }
+
+    /// <summary>"Baixando o reconhecimento de voz... 40%" while the download runs, otherwise null.</summary>
+    public string? DownloadText => VoiceAddon.Progress is { } progress
+        ? $"Baixando o reconhecimento de voz ({VoiceAddon.DownloadMegabytes} MB, só desta vez)... {progress:P0}"
+        : null;
 
     public ObservableCollection<VoiceWordItem> Names { get; } = [];
 
@@ -125,7 +136,7 @@ public sealed class VoiceCommandsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Why the voice command can't listen (no Portuguese speech pack, microphone blocked...), or null.</summary>
+    /// <summary>Why the voice command can't listen (download failed, microphone missing...), or null.</summary>
     public string? Problem
     {
         get => _problem;
@@ -167,6 +178,18 @@ public sealed class VoiceCommandsViewModel : ObservableObject
         OnPropertyChanged(nameof(Sensitivity));
         OnPropertyChanged(nameof(PhrasesText));
         OnPropertyChanged(nameof(OneWordWarning));
+    }
+
+    private async Task DownloadAsync()
+    {
+        try
+        {
+            await VoiceAddon.InstallAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            Problem = $"Não foi possível baixar o reconhecimento de voz: {ex.Message}. Confira a internet e ligue a opção de novo.";
+        }
     }
 
     private static void Reload(ObservableCollection<VoiceWordItem> target, List<string> items, Action<string> remove)
@@ -235,20 +258,28 @@ public sealed class VoiceCommandsViewModel : ObservableObject
     private async Task TestAsync()
     {
         TestAccepted = false;
-        if (VoiceCommandListener.AvailabilityProblem() is { } unavailable)
+        IsTesting = true;
+        if (!VoiceAddon.IsInstalled)
         {
-            TestText = unavailable;
-            return;
+            TestText = "Baixando o reconhecimento de voz antes do teste...";
+            await DownloadAsync();
+            if (!VoiceAddon.IsInstalled)
+            {
+                TestText = Problem;
+                IsTesting = false;
+                return;
+            }
         }
 
         var phrases = VoicePhrases.Build(V);
-        IsTesting = true;
         TestText = "Preparando o microfone...";
         await _trigger.SetPausedAsync(true);
         var listener = new VoiceCommandListener();
         try
         {
             var heard = new TaskCompletionSource<VoiceHeard>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var lastText = "";
+            listener.Transcribed += text => lastText = text;
             listener.Heard += h =>
             {
                 if (h.Phrase.Length > 0)
@@ -257,13 +288,14 @@ public sealed class VoiceCommandsViewModel : ObservableObject
                 }
                 else
                 {
-                    _dispatcher.InvokeAsync(() => TestText = "Ouvi uma fala, mas não era nenhuma das frases. Tente de novo...");
+                    var text = lastText;
+                    _dispatcher.InvokeAsync(() => TestText = $"Ouvi \"{text}\", mas não é nenhuma das frases. Tente de novo...");
                 }
             };
 
             try
             {
-                await listener.StartAsync(phrases);
+                await listener.StartAsync(V, _store.Current.Audio.Sources.FirstOrDefault(s => s.Id == AudioSourceIds.Microphone)?.Device);
             }
             catch (InvalidOperationException ex)
             {
@@ -274,7 +306,7 @@ public sealed class VoiceCommandsViewModel : ObservableObject
             TestText = $"Escutando por {TestDuration.TotalSeconds:0} segundos... Diga \"{phrases[0]}\".";
             if (await Task.WhenAny(heard.Task, Task.Delay(TestDuration)) != heard.Task)
             {
-                TestText = "Nenhuma frase reconhecida em 10 segundos. Fale mais perto do microfone e confira se ele é o microfone padrão do Windows.";
+                TestText = "Nenhuma frase reconhecida em 10 segundos. Fale mais perto do microfone e confira o microfone escolhido na tela Áudio.";
                 return;
             }
 

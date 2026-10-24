@@ -327,7 +327,9 @@
                         </StackPanel>
                     </DockPanel>
                     <TextBlock Style="{StaticResource HintText}" Margin="0,6,0,0"
-                               Text="Diga o nome do assistente e um comando, por exemplo &quot;Oni, clipa isso&quot;, para salvar um clipe. Só escuta com a captura de clipes ativa. Usa o microfone padrão do Windows, funciona sem internet e nada sai do seu PC." />
+                               Text="Diga o nome do assistente e um comando, por exemplo &quot;Oni, clipa isso&quot;, para salvar um clipe, mesmo com o jogo na frente. Faça uma pausa curta antes e depois do comando: no meio de uma conversa sem pausa ele não é ouvido. Só escuta com a captura de clipes ativa e usa o microfone escolhido na tela Áudio. Funciona sem internet e nada sai do seu PC." />
+                    <TextBlock Text="{Binding DownloadText}" Style="{StaticResource HintText}" Foreground="{StaticResource AccentHoverBrush}" Margin="0,8,0,0"
+                               Visibility="{Binding DownloadText, Converter={StaticResource NotEmptyToVisibility}}" />
                     <Border Background="{StaticResource DangerSoftBrush}" CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
                             Visibility="{Binding Problem, Converter={StaticResource NotEmptyToVisibility}}">
                         <TextBlock Text="{Binding Problem}" Foreground="{StaticResource DangerBrush}" FontSize="12.5" TextWrapping="Wrap" />

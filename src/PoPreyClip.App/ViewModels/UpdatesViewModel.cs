@@ -50,7 +50,7 @@ public sealed class UpdatesViewModel : ObservableObject
         _timer = new DispatcherTimer(FirstCheckDelay, DispatcherPriority.Background, async (_, _) =>
         {
             _timer!.Interval = CheckInterval;
-            if (_store.Current.AutoCheckUpdates)
+            if (_store.Current.AutoCheckUpdates && !UpdateService.IsTestBuild)
             {
                 await CheckAsync(manual: false);
                 await UpdateFfmpegAsync(manual: false);
@@ -119,7 +119,9 @@ public sealed class UpdatesViewModel : ObservableObject
 
     public ICommand DismissCommand { get; }
 
-    public string CurrentVersionText => $"Versão {UpdateService.CurrentVersion.ToString(3)}";
+    public string CurrentVersionText => UpdateService.IsTestBuild
+        ? $"Versão {UpdateService.CurrentVersion.ToString(3)} (app de testes: não procura atualizações sozinho)"
+        : $"Versão {UpdateService.CurrentVersion.ToString(3)}";
 
     public UpdateInfo? Available
     {
@@ -208,7 +210,7 @@ public sealed class UpdatesViewModel : ObservableObject
     public void CheckIfStale()
     {
         // Before the first check (8 seconds after start-up) there is nothing to refresh yet.
-        if (_store.Current.AutoCheckUpdates && _lastCheck != DateTime.MinValue && DateTime.UtcNow - _lastCheck >= WindowCheckMinimumGap)
+        if (_store.Current.AutoCheckUpdates && !UpdateService.IsTestBuild && _lastCheck != DateTime.MinValue && DateTime.UtcNow - _lastCheck >= WindowCheckMinimumGap)
         {
             _ = CheckAsync(manual: false);
         }

@@ -110,12 +110,12 @@ C:\PoPreyClip\Clips\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
 
 ### Salvar um clipe com a voz
 
-1. Ligue em **Configurações → Comando de voz**.
+1. Ligue em **Configurações → Comando de voz**. Na primeira vez, o PoPreyClip baixa o reconhecimento de voz (cerca de 31 MB, só uma vez).
 2. Com a captura de clipes ativa, diga o nome do assistente e um comando: **"Oni, clipa isso"** ou **"Oni, faz um clipe"**.
 
 No mesmo cartão você troca o nome do assistente, adiciona comandos, escolhe a **Sensibilidade** (Rigorosa, Normal ou Flexível) e usa **Testar comando de voz** para ver o que o PoPreyClip entendeu e com qual confiança. O nome antes do comando evita que uma conversa normal salve um clipe sem querer.
 
-O comando de voz usa o reconhecimento de fala do próprio Windows, com o microfone padrão do Windows, e só escuta enquanto a captura de clipes está ativa. Dois pedidos de clipe com menos de 2 segundos de diferença, pela voz ou pelo atalho, salvam um clipe só.
+O reconhecimento é feito pelo [Whisper](https://github.com/ggml-org/whisper.cpp) (modelo tiny), no seu PC e sem internet, com o microfone escolhido na tela **Áudio**. Ele entende qualquer palavra, então o nome do assistente e os comandos podem ser gírias ou nomes inventados. Funciona com o jogo na frente e só escuta enquanto a captura de clipes está ativa. Para não pesar no jogo, ele só é acionado depois de falas curtas, de até 4 segundos: silêncio e conversas longas no chat de voz não gastam processador. Por isso, faça uma pausa curta antes e depois do comando: dito no meio de uma conversa sem pausa, ele não é ouvido. Quando uma fala parece um comando, ela é ouvida de novo de outro jeito, e o clipe só é salvo se as duas vezes concordarem: isso evita clipes salvos por engano no meio de uma conversa. Dois pedidos de clipe com menos de 2 segundos de diferença, pela voz ou pelo atalho, salvam um clipe só.
 
 ### Tirar uma captura de tela
 
@@ -226,8 +226,8 @@ Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por e
 <summary><b>O comando de voz não funciona</b></summary>
 
 - Use **Testar comando de voz** em **Configurações → Comando de voz** para ver o que foi entendido.
-- O PoPreyClip escuta o **microfone padrão do Windows**. Confira qual é em **Configurações do Windows → Sistema → Som → Entrada**.
-- Se aparecer o aviso de que falta o reconhecimento de fala em português, instale em **Configurações do Windows → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Fala**.
+- O PoPreyClip escuta o microfone escolhido na tela **Áudio**. Confira se é o microfone que você usa no jogo.
+- Se o download do reconhecimento de voz falhar, confira a internet e desligue e ligue a opção de novo.
 - Se o Windows bloquear o microfone, libere em **Privacidade e segurança → Microfone → Permitir que aplicativos da área de trabalho acessem o microfone**.
 - Se a confiança vier baixa, mude a **Sensibilidade** para Flexível ou troque o nome do assistente por outro mais fácil de reconhecer.
 </details>
@@ -309,7 +309,7 @@ O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml
 
 ## 🔒 Privacidade
 
-O PoPreyClip funciona 100% no seu computador. Ele não tem conta, não envia nada para a internet (nem o comando de voz, que é reconhecido no próprio Windows) e só grava o que fica no buffer temporário enquanto você não salva um clipe.
+O PoPreyClip funciona 100% no seu computador. Ele não tem conta, não envia nada para a internet (nem o comando de voz, que é reconhecido no próprio PC) e só grava o que fica no buffer temporário enquanto você não salva um clipe.
 
 As configurações ficam em `%APPDATA%\PoPreyClip\config.json` e os logs em `%LOCALAPPDATA%\PoPreyClip\logs`.
 

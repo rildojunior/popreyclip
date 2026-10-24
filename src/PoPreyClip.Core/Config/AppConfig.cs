@@ -289,12 +289,12 @@ public sealed class VoiceConfig
     public void Normalize()
     {
         AssistantNames = Clean(AssistantNames);
+        Commands = Clean(Commands);
         if (AssistantNames.Count == 0)
         {
             AssistantNames = [DefaultAssistantName];
         }
 
-        Commands = Clean(Commands);
         if (Commands.Count == 0)
         {
             Commands = [.. DefaultCommands];

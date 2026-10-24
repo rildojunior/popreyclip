@@ -27,6 +27,7 @@ public sealed class VoiceClipTrigger : IDisposable
         _session = session;
         _session.RecordingChanged += OnRecordingChanged;
         _store.Changed += OnConfigChanged;
+        VoiceAddon.Changed += OnAddonChanged;
         Refresh();
     }
 
@@ -57,6 +58,15 @@ public sealed class VoiceClipTrigger : IDisposable
 
     private void OnConfigChanged(AppConfig config) => Refresh();
 
+    /// <summary>The download finished: start listening if the voice command is waiting for it.</summary>
+    private void OnAddonChanged()
+    {
+        if (VoiceAddon.Progress is null)
+        {
+            Refresh();
+        }
+    }
+
     private void Refresh() => _ = RefreshAsync();
 
     private async Task RefreshAsync()
@@ -66,8 +76,10 @@ public sealed class VoiceClipTrigger : IDisposable
         {
             var config = _store.Current.Voice;
             var phrases = VoicePhrases.Build(config);
+            var microphone = Microphone(_store.Current);
             var wanted = !_disposed && !_paused && config.Enabled && _session.IsRecording && phrases.Count > 0;
-            var signature = wanted ? string.Join("|", phrases) : null;
+            // Listening restarts when the phrases or the chosen microphone change, or once the download is done.
+            var signature = wanted ? $"{string.Join("|", phrases)}|{microphone}|{VoiceAddon.IsInstalled}" : null;
             if (signature == _signature)
             {
                 return;
@@ -81,10 +93,11 @@ public sealed class VoiceClipTrigger : IDisposable
                 return;
             }
 
-            if (VoiceCommandListener.AvailabilityProblem() is { } unavailable)
+            if (!VoiceAddon.IsInstalled)
             {
-                Problem = unavailable;
-                Log.Warn($"Comando de voz: {unavailable}");
+                // Normally downloaded when the option is turned on; this covers a deleted or interrupted download.
+                Problem = null;
+                _ = InstallAddonAsync();
                 return;
             }
 
@@ -93,7 +106,7 @@ public sealed class VoiceClipTrigger : IDisposable
             listener.StoppedUnexpectedly += OnStoppedUnexpectedly;
             try
             {
-                await listener.StartAsync(phrases);
+                await listener.StartAsync(config, microphone);
                 _listener = listener;
                 Problem = null;
                 Log.Info($"Comando de voz ligado. Diga \"{phrases[0]}\" para salvar um clipe.");
@@ -107,6 +120,23 @@ public sealed class VoiceClipTrigger : IDisposable
         finally
         {
             _gate.Release();
+        }
+    }
+
+    /// <summary>The microphone set on the Audio page ("Auto" for the Windows default).</summary>
+    private static string? Microphone(AppConfig config) =>
+        config.Audio.Sources.FirstOrDefault(s => s.Id == AudioSourceIds.Microphone)?.Device;
+
+    private async Task InstallAddonAsync()
+    {
+        try
+        {
+            await VoiceAddon.InstallAsync();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            Problem = $"Não foi possível baixar o reconhecimento de voz: {ex.Message}";
+            Log.Warn($"Comando de voz: {Problem}");
         }
     }
 
@@ -170,6 +200,7 @@ public sealed class VoiceClipTrigger : IDisposable
         _disposed = true;
         _session.RecordingChanged -= OnRecordingChanged;
         _store.Changed -= OnConfigChanged;
+        VoiceAddon.Changed -= OnAddonChanged;
         // Off the UI thread: waiting there for code that continues on the UI thread would never finish.
         Task.Run(RefreshAsync).Wait(TimeSpan.FromSeconds(5));
     }

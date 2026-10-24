@@ -48,6 +48,20 @@ public sealed class UpdateService
         }
     }
 
+    /// <summary>
+    /// The test copy built on the developer's PC (version like "1.0.12-teste"): it never looks for updates by itself,
+    /// so it does not keep offering the published version.
+    /// </summary>
+    public static bool IsTestBuild
+    {
+        get
+        {
+            var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+            var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            return informational?.Contains("-teste", StringComparison.OrdinalIgnoreCase) == true;
+        }
+    }
+
     /// <summary>Accepts "v1.2.3", "1.2.3", "1.2.3+abc" and "1.2.3-beta" (pre-release suffix ignored).</summary>
     public static bool TryParseVersion(string? text, out Version version)
     {

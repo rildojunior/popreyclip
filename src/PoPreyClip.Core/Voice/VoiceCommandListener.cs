@@ -1,126 +1,184 @@
 using System.Runtime.InteropServices;
-using Windows.Globalization;
-using Windows.Media.SpeechRecognition;
+using PoPreyClip.Audio;
+using PoPreyClip.Config;
+using Whisper.net;
 
 namespace PoPreyClip.Voice;
 
 public sealed record VoiceHeard(string Phrase, VoiceConfidence Confidence);
 
 /// <summary>
-/// Listens to the default Windows microphone for a closed list of phrases with the speech recognizer built into
-/// Windows. It works offline with the Portuguese speech pack, costs well under 1% of a CPU core, and never touches
-/// the game. Medal's default engine (the classic System.Speech one) has no Portuguese recognizer on most PCs.
+/// Listens for the voice phrases with Whisper (tiny model), offline. It reads the chosen microphone itself, so it keeps
+/// hearing while the game is in front (the Windows speech recognizer goes deaf as soon as PoPreyClip is in the
+/// background), and Whisper writes any word, so names and slang like "clipa isso" work. To stay light, Whisper only
+/// runs on short utterances: silence and long conversations cost almost nothing.
 /// </summary>
 public sealed class VoiceCommandListener : IAsyncDisposable
 {
-    public const string LanguageTag = "pt-BR";
-    private SpeechRecognizer? _recognizer;
+    internal const int SampleRate = 16_000;
+    private const int Decimation = AudioFormat.SampleRate / SampleRate;
+    private const int FrameSamples = SampleRate / 50; // 20 ms
+    private static readonly TimeSpan MaxUtterance = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan MinUtterance = TimeSpan.FromMilliseconds(400);
+    private Thread? _thread;
+    private volatile bool _running;
 
-    /// <summary>Raised on a background thread for every phrase heard, including rejected ones (empty phrase).</summary>
+    /// <summary>Raised on a background thread after each short utterance, with the phrase found or a rejected empty one.</summary>
     public event Action<VoiceHeard>? Heard;
 
-    /// <summary>Raised when Windows ends the listening by itself (microphone unplugged, audio problem...).</summary>
+    /// <summary>Raised with the raw text Whisper wrote, for the log and the settings test.</summary>
+    public event Action<string>? Transcribed;
+
+    /// <summary>Raised when listening stops by itself (microphone unplugged or failing).</summary>
     public event Action<string>? StoppedUnexpectedly;
 
-    /// <summary>Message to show when this PC can't listen in Portuguese, or null when it can.</summary>
-    public static string? AvailabilityProblem()
-    {
-        try
-        {
-            return SpeechRecognizer.SupportedGrammarLanguages.Any(l => l.LanguageTag.Equals(LanguageTag, StringComparison.OrdinalIgnoreCase))
-                ? null
-                : "O Windows deste PC não tem o reconhecimento de fala em português. Instale em Configurações do Windows → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Fala.";
-        }
-        catch (Exception ex) when (ex is COMException or TypeLoadException or UnauthorizedAccessException)
-        {
-            return $"O reconhecimento de fala do Windows não está disponível: {ex.Message}";
-        }
-    }
-
-    public async Task StartAsync(IReadOnlyList<string> phrases)
+    /// <summary>Starts listening on the microphone ("Auto" or part of its name, as on the Audio page).</summary>
+    public async Task StartAsync(VoiceConfig config, string? microphone)
     {
         await StopAsync();
-        var recognizer = new SpeechRecognizer(new Language(LanguageTag));
-        try
-        {
-            recognizer.Constraints.Add(new SpeechRecognitionListConstraint(phrases, "clipe"));
-            var compiled = await recognizer.CompileConstraintsAsync();
-            if (compiled.Status != SpeechRecognitionResultStatus.Success)
-            {
-                throw new InvalidOperationException($"O Windows não aceitou as frases do comando de voz ({compiled.Status}).");
-            }
-
-            // Without this Windows stops listening after a few seconds of silence.
-            recognizer.ContinuousRecognitionSession.AutoStopSilenceTimeout = TimeSpan.FromDays(1);
-            recognizer.ContinuousRecognitionSession.ResultGenerated += OnResultGenerated;
-            recognizer.ContinuousRecognitionSession.Completed += OnCompleted;
-            await recognizer.ContinuousRecognitionSession.StartAsync();
-        }
-        catch (Exception ex) when (ex is COMException or UnauthorizedAccessException or InvalidOperationException)
-        {
-            recognizer.Dispose();
-            throw new InvalidOperationException(DescribeStartError(ex), ex);
-        }
-
-        _recognizer = recognizer;
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _running = true;
+        // A thread of its own: the capture lives in the multithreaded COM apartment and Whisper runs after each utterance.
+        _thread = new Thread(() => Listen(config, microphone, started)) { IsBackground = true, Name = "Comando de voz" };
+        _thread.Start();
+        await started.Task;
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
-        var recognizer = _recognizer;
-        _recognizer = null;
-        if (recognizer is null)
-        {
-            return;
-        }
-
-        recognizer.ContinuousRecognitionSession.ResultGenerated -= OnResultGenerated;
-        recognizer.ContinuousRecognitionSession.Completed -= OnCompleted;
-        try
-        {
-            // Stopping waits for the phrase being spoken and sometimes never returns; cancelling is immediate.
-            await recognizer.ContinuousRecognitionSession.CancelAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(3));
-        }
-        catch (Exception ex) when (ex is COMException or InvalidOperationException or TimeoutException or ObjectDisposedException)
-        {
-            Log.Warn($"Comando de voz: o Windows demorou para parar de escutar ({ex.Message}).");
-        }
-
-        recognizer.Dispose();
+        var thread = _thread;
+        _thread = null;
+        _running = false;
+        return thread is null ? Task.CompletedTask : Task.Run(() => thread.Join(TimeSpan.FromSeconds(5)));
     }
 
     public async ValueTask DisposeAsync() => await StopAsync();
 
-    private void OnResultGenerated(SpeechContinuousRecognitionSession sender, SpeechContinuousRecognitionResultGeneratedEventArgs args)
+    private void Listen(VoiceConfig config, string? microphone, TaskCompletionSource started)
     {
-        var confidence = args.Result.Confidence switch
+        WasapiCapture? capture = null;
+        WhisperFactory? factory = null;
+        WhisperProcessor? processor = null;
+        WhisperProcessor? plain = null;
+        try
         {
-            SpeechRecognitionConfidence.High => VoiceConfidence.High,
-            SpeechRecognitionConfidence.Medium => VoiceConfidence.Medium,
-            SpeechRecognitionConfidence.Low => VoiceConfidence.Low,
-            _ => VoiceConfidence.Rejected,
-        };
-        Heard?.Invoke(new VoiceHeard(VoicePhrases.Normalize(args.Result.Text), confidence));
-    }
+            var device = AudioDevices.ResolveMicrophone(microphone)
+                ?? throw new InvalidOperationException("Nenhum microfone encontrado.");
+            factory = VoiceAddon.OpenModel();
+            // The phrases as a hint make Whisper prefer their spelling ("clipa", the assistant's name); a phrase it
+            // finds is then checked again without the hint (see VoicePhrases.Confirms).
+            processor = CreateProcessor(factory, string.Join(". ", VoicePhrases.Build(config)) + ".");
+            plain = CreateProcessor(factory, null);
 
-    private void OnCompleted(SpeechContinuousRecognitionSession sender, SpeechContinuousRecognitionCompletedEventArgs args)
-    {
-        if (_recognizer is not null && args.Status != SpeechRecognitionResultStatus.Success)
+            var fifo = new PcmFifo(AudioFormat.SampleRate * AudioFormat.BytesPerFrame * 2);
+            capture = AudioDevices.CreateMicrophoneCapture(device.Id, fifo, "Comando de voz");
+            capture.Start();
+            started.TrySetResult();
+            Log.Info($"Comando de voz escutando: {device.Name}.");
+            ReadLoop(capture, fifo, processor, plain, config);
+        }
+        catch (Exception ex) when (ex is COMException or InvalidOperationException or DllNotFoundException or BadImageFormatException or EntryPointNotFoundException or IOException or UnauthorizedAccessException)
         {
-            StoppedUnexpectedly?.Invoke(args.Status switch
+            var message = ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException
+                ? $"O reconhecimento de voz não abriu neste PC ({ex.Message})."
+                : $"Não foi possível ligar o comando de voz: {ex.Message}";
+            if (!started.TrySetException(new InvalidOperationException(message, ex)))
             {
-                SpeechRecognitionResultStatus.MicrophoneUnavailable => "o microfone padrão do Windows não está disponível",
-                SpeechRecognitionResultStatus.AudioQualityFailure => "o áudio do microfone está com problema",
-                SpeechRecognitionResultStatus.TimeoutExceeded => "o Windows parou de escutar por tempo",
-                _ => $"o Windows parou de escutar ({args.Status})",
-            });
+                StoppedUnexpectedly?.Invoke(message);
+            }
+        }
+        finally
+        {
+            capture?.Dispose();
+            processor?.Dispose();
+            plain?.Dispose();
+            factory?.Dispose();
         }
     }
 
-    private static string DescribeStartError(Exception ex) => ex switch
+    private static WhisperProcessor CreateProcessor(WhisperFactory factory, string? prompt)
     {
-        UnauthorizedAccessException => "O Windows bloqueou o microfone. Libere em Configurações do Windows → Privacidade e segurança → Microfone → Permitir que aplicativos da área de trabalho acessem o microfone.",
-        COMException { HResult: unchecked((int)0x80045509) } => "O Windows recusou o reconhecimento de fala por causa das configurações de privacidade de fala.",
-        _ => $"Não foi possível ligar o comando de voz: {ex.Message}",
-    };
+        var builder = factory.CreateBuilder()
+            .WithLanguage("pt")
+            .WithThreads(2)
+            .WithNoContext()
+            .WithSingleSegment()
+            // A 5 s window instead of 30 s and no retries: about 0.1 s per utterance, and no runaway repetitions.
+            .WithAudioContextSize(256)
+            .WithMaxTokensPerSegment(16)
+            .WithTemperature(0)
+            .WithTemperatureInc(0);
+        return (prompt is null ? builder : builder.WithPrompt(prompt)).Build();
+    }
+
+    private void ReadLoop(WasapiCapture capture, PcmFifo fifo, WhisperProcessor processor, WhisperProcessor plain, VoiceConfig config)
+    {
+        var chunk = new byte[FrameSamples * Decimation * AudioFormat.BytesPerFrame];
+        var frame = new float[FrameSamples];
+        var detector = new SpeechDetector(SampleRate, FrameSamples, MinUtterance, MaxUtterance);
+        while (_running)
+        {
+            if (capture.Faulted)
+            {
+                StoppedUnexpectedly?.Invoke("o microfone parou de responder");
+                return;
+            }
+
+            if (fifo.Available < chunk.Length)
+            {
+                Thread.Sleep(10);
+                continue;
+            }
+
+            fifo.Read(chunk);
+            ToMono16k(chunk, frame);
+            if (detector.Push(frame) is { } utterance)
+            {
+                var text = Transcribe(processor, utterance);
+                var heard = VoicePhrases.Match(text, config);
+                if (heard.Phrase.Length > 0)
+                {
+                    // Only here, so it costs a second pass just when a phrase seems to be there.
+                    var check = Transcribe(plain, utterance);
+                    if (!VoicePhrases.Confirms(check, heard.Phrase))
+                    {
+                        text = check; // what was really said, for the settings test
+                        heard = new VoiceHeard("", VoiceConfidence.Rejected);
+                    }
+                }
+
+                Transcribed?.Invoke(text);
+                Heard?.Invoke(heard);
+            }
+        }
+    }
+
+    private static string Transcribe(WhisperProcessor processor, float[] samples)
+    {
+        var text = "";
+        foreach (var segment in processor.ProcessAsync(samples).ToBlockingEnumerable())
+        {
+            text += segment.Text;
+        }
+
+        return text.Trim();
+    }
+
+    /// <summary>48 kHz stereo 16-bit to 16 kHz mono float: average both channels over each group of three frames.</summary>
+    internal static void ToMono16k(ReadOnlySpan<byte> stereo48k, Span<float> mono16k)
+    {
+        var samples = MemoryMarshal.Cast<byte, short>(stereo48k);
+        var count = Math.Min(samples.Length / AudioFormat.Channels / Decimation, mono16k.Length);
+        for (var i = 0; i < count; i++)
+        {
+            var sum = 0;
+            for (var f = 0; f < Decimation; f++)
+            {
+                var at = (i * Decimation + f) * AudioFormat.Channels;
+                sum += samples[at] + samples[at + 1];
+            }
+
+            mono16k[i] = sum / (Decimation * AudioFormat.Channels * 32768f);
+        }
+    }
 }
