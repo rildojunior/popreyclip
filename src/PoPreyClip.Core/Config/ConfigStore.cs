@@ -34,8 +34,10 @@ public sealed class ConfigStore : IDisposable
         _current = config;
     }
 
-    public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PoPreyClip", "config.json");
+    /// <summary>POPREYCLIP_CONFIG points a test copy (with POPREYCLIP_INSTANCE) at its own file, away from the user's.</summary>
+    public static string DefaultPath { get; } = Environment.GetEnvironmentVariable("POPREYCLIP_CONFIG") is { Length: > 0 } custom
+        ? custom
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PoPreyClip", "config.json");
 
     public string FilePath { get; }
 
