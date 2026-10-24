@@ -42,7 +42,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
-- 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo. O nome do assistente e os comandos podem ser trocados, funciona sem internet e vem desligado.
+- 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo, mesmo com o jogo na frente. Entende qualquer palavra, então o nome do assistente e os comandos podem ser gírias ou nomes inventados. É reconhecido no seu PC, sem internet, e vem desligado.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift, Ctrl ou Alt segurados, e podem ser trocados nas configurações.
 - 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
@@ -52,12 +52,20 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 
 <table>
   <tr>
-    <td><img src="docs/images/audio.png" alt="Tela de áudio"></td>
     <td><img src="docs/images/clipes.png" alt="Biblioteca de clipes"></td>
+    <td><img src="docs/images/editor.png" alt="Editor de clipes"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Clipes:</b> tudo separado por jogo</td>
+    <td align="center"><b>Editor:</b> corte, recorte e volume de cada faixa</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/audio.png" alt="Tela de áudio"></td>
+    <td><img src="docs/images/configuracoes.png" alt="Configurações de atalhos e comando de voz"></td>
   </tr>
   <tr>
     <td align="center"><b>Áudio:</b> volume e reforço de cada fonte</td>
-    <td align="center"><b>Clipes:</b> tudo separado por jogo</td>
+    <td align="center"><b>Atalhos e voz:</b> teclas e comando de voz</td>
   </tr>
 </table>
 
@@ -100,7 +108,7 @@ A captura de clipes não grava a partida inteira: ela só guarda os últimos seg
 
 O jogo abriu e não foi detectado? Clique em **Ativar captura de clipes**, na tela inicial ou na barra lateral. Esse botão só é necessário nesse caso. Para o jogo ser reconhecido sozinho das próximas vezes, adicione-o em **Configurações → Jogos e apps vigiados**.
 
-Prefere deixar a captura ligada o tempo todo? Desligue **Ativar a captura de clipes só com um jogo aberto** em **Configurações → Comportamento**.
+Prefere deixar a captura ligada o tempo todo? Desligue **Ativar a captura de clipes só com um jogo aberto** em **Configurações → Geral → Comportamento**.
 
 O clipe vai para:
 
@@ -110,8 +118,8 @@ C:\PoPreyClip\Clips\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
 
 ### Salvar um clipe com a voz
 
-1. Ligue em **Configurações → Comando de voz**. Na primeira vez, o PoPreyClip baixa o reconhecimento de voz (cerca de 31 MB, só uma vez).
-2. Com a captura de clipes ativa, diga o nome do assistente e um comando: **"Oni, clipa isso"** ou **"Oni, faz um clipe"**.
+1. Ligue em **Configurações → Atalhos e voz → Comando de voz**. Na primeira vez, o PoPreyClip baixa o reconhecimento de voz (cerca de 31 MB, só uma vez).
+2. Com a captura de clipes ativa, faça uma pausa curta e diga o nome do assistente e um comando: **"Oni, clipa isso"** ou **"Oni, faz um clipe"**.
 
 No mesmo cartão você troca o nome do assistente, adiciona comandos, escolhe a **Sensibilidade** (Rigorosa, Normal ou Flexível) e usa **Testar comando de voz** para ver o que o PoPreyClip entendeu e com qual confiança. O nome antes do comando evita que uma conversa normal salve um clipe sem querer.
 
@@ -162,7 +170,8 @@ Na tela **Configurações** você troca:
 - o aviso na tela (o do PoPreyClip, a notificação do Windows ou nenhum), em **Aviso na tela**;
 - o som do clipe e o som da captura de tela, com botão **Ouvir** para testar;
 - o que acontece ao fechar a janela;
-- **Iniciar com o Windows**, em **Comportamento**, para o app abrir sozinho ao ligar o PC.
+- **Iniciar com o Windows**, em **Geral → Comportamento**, para o app abrir sozinho ao ligar o PC;
+- o comando de voz, em **Atalhos e voz → Comando de voz**.
 
 ### Sair de verdade
 
@@ -191,7 +200,7 @@ A instalação só acontece quando você clica em **Atualizar agora**. Você pod
 | `F12` | Capturar a tela |
 | `Alt+Shift+F9` | Ativar ou desativar a captura de clipes |
 
-Todos podem ser trocados em **Configurações → Teclas de atalho**.
+Todos podem ser trocados em **Configurações → Atalhos e voz → Teclas de atalho**.
 
 ## ❓ Problemas comuns
 
@@ -204,20 +213,20 @@ O PoPreyClip baixa o FFmpeg sozinho na primeira vez que abre. Se aparecer essa m
 <details>
 <summary><b>O clipe saiu com a tela preta, parada ou sem o jogo</b></summary>
 
-- Se um jogo não manda imagem pela janela, o PoPreyClip percebe sozinho em alguns segundos e passa a gravar o monitor. Você também pode escolher **Monitor inteiro** em **Configurações → Vídeo → O que gravar**.
+- Se um jogo não manda imagem pela janela, o PoPreyClip percebe sozinho em alguns segundos e passa a gravar o monitor. Você também pode escolher **Monitor inteiro** em **Configurações → Captura → Vídeo → O que gravar**.
 - Alguns jogos em **tela cheia exclusiva** bloqueiam a captura. Mude o modo de vídeo do jogo para **Janela sem borda** (*Borderless* ou *Tela cheia em janela*).
 </details>
 
 <details>
 <summary><b>O jogo não foi detectado e o clipe foi para "Unknown Game"</b></summary>
 
-O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo não for detectado, adicione-o em **Configurações → Jogos e apps vigiados**: com o jogo aberto, escolha a janela dele na lista, confira o nome e clique em **Vigiar**. Daí em diante ele é reconhecido assim que abrir.
+O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo não for detectado, adicione-o em **Configurações → Jogos → Jogos e apps vigiados**: com o jogo aberto, escolha a janela dele na lista, confira o nome e clique em **Vigiar**. Daí em diante ele é reconhecido assim que abrir.
 </details>
 
 <details>
 <summary><b>O atalho não funciona</b></summary>
 
-Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Teclas de atalho**.
+Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Atalhos e voz → Teclas de atalho**.
 
 Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por exemplo) não atrapalha. A tecla Windows sim, porque o Windows usa essas combinações para outras coisas. Se outro atalho do PoPreyClip usar exatamente a combinação apertada, vale o dele: com **F9** salvando o clipe e **Alt+Shift+F9** ativando a captura de clipes, Alt+F9 salva o clipe e Alt+Shift+F9 ativa ou desativa a captura.
 </details>
@@ -225,11 +234,13 @@ Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por e
 <details>
 <summary><b>O comando de voz não funciona</b></summary>
 
-- Use **Testar comando de voz** em **Configurações → Comando de voz** para ver o que foi entendido.
+- Use **Testar comando de voz** em **Configurações → Atalhos e voz → Comando de voz** para ver o que foi entendido.
+- Faça uma pausa curta antes e depois do comando. Dito emendado no meio de uma conversa, ele não é ouvido.
 - O PoPreyClip escuta o microfone escolhido na tela **Áudio**. Confira se é o microfone que você usa no jogo.
 - Se o download do reconhecimento de voz falhar, confira a internet e desligue e ligue a opção de novo.
 - Se o Windows bloquear o microfone, libere em **Privacidade e segurança → Microfone → Permitir que aplicativos da área de trabalho acessem o microfone**.
 - Se a confiança vier baixa, mude a **Sensibilidade** para Flexível ou troque o nome do assistente por outro mais fácil de reconhecer.
+- Salvou um clipe sem você pedir? Mude a **Sensibilidade** para Rigorosa.
 </details>
 
 <details>
@@ -241,7 +252,7 @@ Na tela **Áudio**, suba o **Reforço** do microfone (+10 a +15 dB costuma basta
 <details>
 <summary><b>Tenho placa AMD ou Intel</b></summary>
 
-Funciona. No modo **Automático** o PoPreyClip testa a placa ao abrir e usa o codificador AMD (AMF) ou Intel (Quick Sync) quando ela tem um. Se não der certo, grava pelo processador. Para escolher na mão, vá em **Configurações → Vídeo → Codificador**. Mantenha o driver da placa atualizado. A opção Intel ainda é experimental.
+Funciona. No modo **Automático** o PoPreyClip testa a placa ao abrir e usa o codificador AMD (AMF) ou Intel (Quick Sync) quando ela tem um. Se não der certo, grava pelo processador. Para escolher na mão, vá em **Configurações → Captura → Vídeo → Codificador**. Mantenha o driver da placa atualizado. A opção Intel ainda é experimental.
 </details>
 
 <details>
@@ -277,7 +288,7 @@ As mudanças vão se acumulando no branch `main` e só viram versão quando voc�
 - **A cada `git push`**, o [GitHub Actions](../../actions) compila o app e roda os testes, mas não publica nada.
 - **Para lançar**, vá em [Actions → Release](../../actions/workflows/release.yml), clique em **Run workflow** e confirme. Pelo terminal, o comando é `gh workflow run release.yml`. O Actions então:
   1. compila e roda os testes (se algum falhar, nada é publicado);
-  2. soma 1 ao número da última versão (por exemplo, 1.0.5 vira 1.0.6);
+  2. soma 1 ao último número da versão (por exemplo, 2.0.0 vira 2.0.1), ou usa o número escolhido no projeto, se for maior;
   3. gera o `PoPreyClip.exe` e o arquivo de verificação `PoPreyClip.exe.sha256`;
   4. publica a versão em **Releases**. As notas listam todas as mudanças desde a versão anterior, com os tópicos da descrição de cada commit.
 
@@ -285,7 +296,7 @@ Quem já usa o app recebe o aviso de atualização.
 
 - **Para só testar o executável**, desmarque **Publicar** ao rodar: o Actions gera uma cópia para baixar, sem lançar a versão.
 - **Commits marcados com `[skip ci]`** não são compilados e ficam fora das notas.
-- **Para pular para 1.1.0 ou 2.0.0**, mude `<Version>` em `src/PoPreyClip.App/PoPreyClip.App.csproj` para o número desejado.
+- **Números da versão (X.Y.Z):** o **X** muda em atualizações grandes, que mudam o visual, a estrutura ou funções principais (como a 2.0.0). O **Y** muda com recursos novos ou melhorias importantes (2.0.0 → 2.1.0). O **Z** muda com correções e ajustes de desempenho (2.1.0 → 2.1.1). Para mudar o X ou o Y, coloque o número em `<Version>`, em `src/PoPreyClip.App/PoPreyClip.App.csproj`, antes de lançar.
 
 O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
@@ -306,6 +317,7 @@ O fluxo está em [`.github/workflows/release.yml`](.github/workflows/release.yml
 3. Um mixer alinha as fontes, aplica volume, reforço e limitador e manda cada faixa a um segundo processo do FFmpeg, só de áudio. Assim, se a imagem travar, o som não trava junto.
 4. Vídeo e áudio usam o relógio do Windows como base comum. Ao salvar, os trechos recentes são juntados sem recodificar e viram um MP4 sincronizado.
 5. O editor de clipes é uma janela criada só quando é aberta. A prévia usa o mesmo FFmpeg: um processo decodifica o vídeo pela placa de vídeo, no tamanho da tela; outro decodifica todas as faixas de áudio lado a lado, e o app as mistura com o volume de cada uma e toca pelo WASAPI. Ao fechar, os processos param e a memória é devolvida.
+6. O comando de voz lê o microfone por conta própria e só existe com a opção ligada e a captura de clipes ativa. Um detector de fala separa falas curtas pelo volume, e só elas passam pelo [Whisper](https://github.com/ggml-org/whisper.cpp) (modelo tiny, via [Whisper.net](https://github.com/sandrohanea/whisper.net)), primeiro com as frases como dica e, se parecer um comando, de novo sem a dica para confirmar.
 
 ## 🔒 Privacidade
 
