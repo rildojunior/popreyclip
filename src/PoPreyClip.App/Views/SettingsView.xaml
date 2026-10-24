@@ -604,7 +604,7 @@
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Updates.AutoCheck}" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Procurar atualizações automaticamente" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="Ao abrir e a cada 6 horas. Quando sair uma versão nova, aparece um aviso para atualizar com um clique." Style="{StaticResource HintText}" />
+                            <TextBlock Text="Ao abrir o app, a cada hora e quando você abre a janela. Quando sair uma versão nova, aparece um aviso para atualizar com um clique." Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />

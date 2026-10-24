@@ -363,6 +363,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>A game (or watched app) is open right now.</summary>
+    public bool IsGameOpen => _session.CurrentGame is not null;
+
     public string CurrentGame
     {
         get => _currentGame;
@@ -528,6 +531,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         CurrentGame = game is null ? "Nenhum jogo detectado" : game.DisplayName;
         OnPropertyChanged(nameof(TrayText));
+        OnPropertyChanged(nameof(IsGameOpen));
     }
 
     private void UpdateTracks()

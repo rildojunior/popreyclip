@@ -14,6 +14,15 @@ public sealed record DetectedGame(int ProcessId, string ExeName, string DisplayN
 /// </summary>
 public sealed class GameDetector(Func<AppConfig> config)
 {
+    /// <summary>
+    /// Windows overlays that cover the whole screen for a moment but are never games, whatever the user's ignore
+    /// list says: the Snipping Tool overlay (Windows+Shift+S) and the Xbox Game Bar (Windows+G).
+    /// </summary>
+    private static readonly HashSet<string> SystemOverlays = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SnippingTool.exe", "ScreenClippingHost.exe", "ScreenSketch.exe", "GameBar.exe", "GameBarFTServer.exe",
+    };
+
     private readonly object _gate = new();
     private DetectedGame? _current;
 
@@ -112,7 +121,7 @@ public sealed class GameDetector(Func<AppConfig> config)
         }
 
         if (!cfg.DetectFullscreenApps ||
-            cfg.IgnoredProcesses.Contains(exe, StringComparer.OrdinalIgnoreCase) ||
+            IsIgnored(cfg, exe) ||
             path.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.Windows), StringComparison.OrdinalIgnoreCase) ||
             !Win32.IsFullscreen(hwnd))
         {
@@ -121,6 +130,10 @@ public sealed class GameDetector(Func<AppConfig> config)
 
         return new DetectedGame(pid, exe, ResolveDisplayName(hwnd, path));
     }
+
+    /// <summary>Never counted as a game by fullscreen detection: the user's ignore list and Windows' own overlays.</summary>
+    internal static bool IsIgnored(AppConfig cfg, string exe) =>
+        SystemOverlays.Contains(exe) || cfg.IgnoredProcesses.Contains(exe, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Window title first (usually the game name), then file metadata, then the executable name.</summary>
     internal static string ResolveDisplayName(IntPtr hwnd, string path)

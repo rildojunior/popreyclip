@@ -16,6 +16,9 @@ internal sealed class TrayIcon : IDisposable
     private static readonly TimeSpan GameReadyTime = TimeSpan.FromSeconds(5);
     private bool _hintShown;
 
+    /// <summary>New version found during a game; announced when the game closes.</summary>
+    private PoPreyClip.Updates.UpdateInfo? _pendingUpdate;
+
     public TrayIcon(MainWindow window, MainViewModel viewModel, Action exit)
     {
         _window = window;
@@ -56,12 +59,22 @@ internal sealed class TrayIcon : IDisposable
             {
                 _icon.Text = viewModel.TrayText;
             }
+            else if (e.PropertyName == nameof(MainViewModel.IsGameOpen) && !viewModel.IsGameOpen && _pendingUpdate is { } pending)
+            {
+                _pendingUpdate = null;
+                AnnounceUpdate(pending);
+            }
         };
         viewModel.Updates.UpdateFound += update =>
         {
-            if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
+            // A notice in the middle of a match is missed or gets in the way: wait for the game to close.
+            if (viewModel.IsGameOpen)
             {
-                _icon.ShowBalloonTip(4000, "Nova versão do PoPreyClip", $"A versão {update.Version.ToString(3)} está disponível. Abra o app para atualizar.", Forms.ToolTipIcon.None);
+                _pendingUpdate = update;
+            }
+            else
+            {
+                AnnounceUpdate(update);
             }
         };
         viewModel.ScreenshotSaved += info => AnnounceSaved("Captura de tela salva", info.Game);
@@ -77,6 +90,14 @@ internal sealed class TrayIcon : IDisposable
                 _icon.ShowBalloonTip(3000, "PoPreyClip continua aberto", "A captura de clipes segue na bandeja. Clique duas vezes no ícone para abrir.", Forms.ToolTipIcon.None);
             }
         };
+    }
+
+    private void AnnounceUpdate(PoPreyClip.Updates.UpdateInfo update)
+    {
+        if (!_window.IsVisible || _window.WindowState == WindowState.Minimized)
+        {
+            _icon.ShowBalloonTip(4000, "Nova versão do PoPreyClip", $"A versão {update.Version.ToString(3)} está disponível. Abra o app para atualizar.", Forms.ToolTipIcon.None);
+        }
     }
 
     /// <summary>

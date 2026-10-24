@@ -11,14 +11,23 @@ namespace PoPreyClip.App.ViewModels;
 public sealed class UpdatesViewModel : ObservableObject
 {
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
+    private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
+
+    /// <summary>Opening the window checks again only when the last check is older than this.</summary>
+    private static readonly TimeSpan WindowCheckMinimumGap = TimeSpan.FromMinutes(15);
+
+    /// <summary>A dismissed banner comes back after this long, even for the same version.</summary>
+    private static readonly TimeSpan DismissDuration = TimeSpan.FromHours(24);
 
     private readonly ConfigStore _store;
     private readonly Action _exitForUpdate;
     private readonly UpdateService _service = new();
     private readonly DispatcherTimer _timer;
     private UpdateInfo? _available;
-    private bool _dismissed;
+    private Version? _dismissedVersion;
+    private DateTime _dismissedAt;
+    private DateTime _lastCheck = DateTime.MinValue;
+    private bool _checking;
     private bool _isBusy;
     private double _progress;
     private string? _status;
@@ -34,7 +43,8 @@ public sealed class UpdatesViewModel : ObservableObject
         OpenChangelogCommand = new RelayCommand(() => OpenUrl(UpdateService.ChangelogPage));
         DismissCommand = new RelayCommand(() =>
         {
-            _dismissed = true;
+            _dismissedVersion = Available?.Version;
+            _dismissedAt = DateTime.UtcNow;
             OnPropertyChanged(nameof(IsBannerVisible));
         });
         _timer = new DispatcherTimer(FirstCheckDelay, DispatcherPriority.Background, async (_, _) =>
@@ -127,7 +137,12 @@ public sealed class UpdatesViewModel : ObservableObject
 
     public string AvailableText => Available is null ? "" : $"Nova versão {Available.Version.ToString(3)} disponível";
 
-    public bool IsBannerVisible => Available is not null && !_dismissed;
+    /// <summary>
+    /// "Lembrar depois" hides the banner for 24 hours; it comes back sooner when a newer version than the dismissed
+    /// one comes out.
+    /// </summary>
+    public bool IsBannerVisible => Available is not null
+        && !(Available.Version == _dismissedVersion && DateTime.UtcNow - _dismissedAt < DismissDuration);
 
     public bool IsBusy
     {
@@ -189,6 +204,16 @@ public sealed class UpdatesViewModel : ObservableObject
         }
     }
 
+    /// <summary>Called when the window is opened: checks again when the last check is more than 15 minutes old.</summary>
+    public void CheckIfStale()
+    {
+        // Before the first check (8 seconds after start-up) there is nothing to refresh yet.
+        if (_store.Current.AutoCheckUpdates && _lastCheck != DateTime.MinValue && DateTime.UtcNow - _lastCheck >= WindowCheckMinimumGap)
+        {
+            _ = CheckAsync(manual: false);
+        }
+    }
+
     public async Task CheckAsync(bool manual)
     {
         if (manual)
@@ -196,7 +221,7 @@ public sealed class UpdatesViewModel : ObservableObject
             _ = UpdateFfmpegAsync(manual: true);
         }
 
-        if (IsBusy)
+        if (IsBusy || _checking)
         {
             return;
         }
@@ -206,6 +231,8 @@ public sealed class UpdatesViewModel : ObservableObject
             Status = "Procurando atualizações...";
         }
 
+        _checking = true;
+        _lastCheck = DateTime.UtcNow;
         try
         {
             var update = await _service.CheckAsync();
@@ -220,9 +247,11 @@ public sealed class UpdatesViewModel : ObservableObject
             Status = $"Nova versão {update.Version.ToString(3)} disponível.";
             if (manual)
             {
-                _dismissed = false;
-                OnPropertyChanged(nameof(IsBannerVisible));
+                _dismissedVersion = null;
             }
+
+            // Also brings the banner back once the 24 hours of "Lembrar depois" are over.
+            OnPropertyChanged(nameof(IsBannerVisible));
 
             if (isNew)
             {
@@ -244,6 +273,10 @@ public sealed class UpdatesViewModel : ObservableObject
             {
                 Status = "Não foi possível verificar agora. Confira sua conexão com a internet.";
             }
+        }
+        finally
+        {
+            _checking = false;
         }
     }
 

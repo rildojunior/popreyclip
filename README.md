@@ -170,12 +170,14 @@ Fechar a janela deixa o PoPreyClip gravando na bandeja. Para sair, clique com o 
 
 ### Atualizações
 
-O PoPreyClip procura versões novas sozinho, ao abrir e a cada 6 horas. Quando sai uma, aparece um aviso no topo do app:
+O PoPreyClip procura versões novas sozinho: ao abrir, a cada hora e quando você abre a janela pela bandeja. Quando sai uma, aparece um aviso no topo do app:
 
 1. Clique em **Atualizar agora**.
 2. O app baixa a versão nova, confere se o arquivo veio inteiro e se reinicia já atualizado. Leva só alguns segundos.
 
-Você pode procurar na hora ou desligar a busca automática em **Configurações → Atualizações**.
+Se você clicar no **X** do aviso, ele volta depois de 24 horas, ou antes disso se sair uma versão ainda mais nova. Com a janela fechada, a notificação de versão nova aparece perto do relógio, mas nunca no meio de uma partida: ela espera o jogo fechar.
+
+A instalação só acontece quando você clica em **Atualizar agora**. Você pode procurar na hora ou desligar a busca automática em **Configurações → Atualizações**.
 
 > A atualização automática funciona a partir da versão **1.0.1**. Quem tem a 1.0.0 precisa baixar a versão nova uma vez pela página de [Releases](../../releases/latest).
 >

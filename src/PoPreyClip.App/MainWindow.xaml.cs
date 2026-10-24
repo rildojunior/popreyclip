@@ -14,6 +14,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
         _store = store;
+        // Opening the window from the tray shows a new version right away instead of at the next hourly check.
+        Activated += (_, _) => viewModel.Updates.CheckIfStale();
         StateChanged += (_, _) => MaximizeButton.Content = WindowState == WindowState.Maximized ? "" : "";
     }
 

@@ -14,6 +14,19 @@ public class WatchedGamesTests
         Assert.True(config.AutoRecordGames);
     }
 
+    [Theory]
+    [InlineData("SnippingTool.exe")]
+    [InlineData("snippingtool.exe")]
+    [InlineData("GameBar.exe")]
+    public void Windows_screen_overlays_never_count_as_games(string exe)
+    {
+        // An old config file without them in the ignore list still ignores them.
+        var config = new AppConfig { IgnoredProcesses = [] };
+
+        Assert.True(GameDetector.IsIgnored(config, exe));
+        Assert.False(GameDetector.IsIgnored(config, "Wardogs.exe"));
+    }
+
     [Fact]
     public void Watched_app_is_detected_by_its_root_process_even_in_background()
     {
