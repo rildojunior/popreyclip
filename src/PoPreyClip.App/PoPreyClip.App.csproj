@@ -26,6 +26,10 @@
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\logo.png" />
+    <!-- Sora (SIL Open Font License, see Assets\Fonts\Sora-OFL.txt): titles and the wordmark. -->
+    <Resource Include="Assets\Fonts\Sora-500.ttf" />
+    <Resource Include="Assets\Fonts\Sora-700.ttf" />
+    <None Include="Assets\Fonts\Sora-OFL.txt" />
   </ItemGroup>
 
   <ItemGroup>

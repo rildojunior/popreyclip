@@ -78,18 +78,20 @@
 
         <!-- Grid of clips -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Clips}" Margin="0,0,0,28">
+            <ItemsControl x:Name="ClipGrid" ItemsSource="{Binding Clips}" Margin="0,0,0,28">
+                <!-- As many columns as fit with cards at least 280 px wide (+16 px gap); the cards stretch to fill the row. -->
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel />
+                        <UniformGrid VerticalAlignment="Top"
+                                     Columns="{Binding ActualWidth, ElementName=ClipGrid, Converter={StaticResource ColumnsForWidth}, ConverterParameter=296}" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border x:Name="Card" Width="292" Margin="0,0,16,16" Background="{StaticResource SurfaceBrush}"
+                        <Border x:Name="Card" Margin="0,0,16,16" Background="{StaticResource SurfaceBrush}"
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12">
                             <StackPanel>
-                                <Grid Height="164">
+                                <Grid Height="{Binding ActualWidth, ElementName=Card, Converter={StaticResource Scale}, ConverterParameter=0.5625}">
                                     <Border CornerRadius="12,12,0,0" Background="{StaticResource Surface2Brush}">
                                         <TextBlock Text="&#xE714;" Style="{StaticResource IconText}" Foreground="{StaticResource TextFaintBrush}" FontSize="28" />
                                     </Border>
@@ -122,7 +124,7 @@
                                     </Border>
                                 </Grid>
                                 <StackPanel Margin="14,12,14,14">
-                                    <TextBlock Text="{Binding Game}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentHoverBrush}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Game}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding FileName}" FontSize="13" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
                                     <StackPanel Orientation="Horizontal" Margin="0,3,0,12">
                                         <TextBlock Text="{Binding DateText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
@@ -136,21 +138,21 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <Button Command="{Binding PlayCommand}" Style="{StaticResource PrimaryButton}" Padding="10,7">
+                                        <Button Command="{Binding PlayCommand}" Style="{StaticResource PrimaryButton}" Padding="8,7">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding OpenIcon}" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
                                                 <TextBlock Text="{Binding OpenText}" Margin="7,0,0,0" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="1" Command="{Binding EditCommand}" Padding="10,7" Margin="8,0,0,0" ToolTip="Cortar, recortar a imagem e ajustar o áudio"
+                                        <Button Grid.Column="1" Command="{Binding EditCommand}" Padding="10,7" Margin="6,0,0,0" ToolTip="Cortar, recortar a imagem e ajustar o áudio"
                                                 Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
                                                 <TextBlock Text="Editar" Margin="7,0,0,0" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="8,0,0,0" Command="{Binding RevealCommand}" ToolTip="Mostrar na pasta" />
-                                        <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE74D;" Margin="8,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
+                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE838;" Width="32" Margin="4,0,0,0" Command="{Binding RevealCommand}" ToolTip="Mostrar na pasta" />
+                                        <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE74D;" Width="32" Margin="2,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
                                     </Grid>
                                 </StackPanel>
                             </StackPanel>

@@ -19,8 +19,8 @@
         </Style>
         <Style x:Key="GroupTitle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
-            <Setter Property="FontSize" Value="19" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Margin" Value="0,40,0,14" />
         </Style>
     </UserControl.Resources>
@@ -37,7 +37,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Comportamento" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <DockPanel Margin="0,16,0,0">
@@ -86,7 +86,7 @@
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Pasta dos clipes" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Pasta raiz onde os clipes são salvos. Dentro dela fica a pasta Clips, com uma subpasta para cada jogo."
@@ -128,7 +128,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE916;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Duração do clipe" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Quanto tempo antes do atalho entra no clipe." Style="{StaticResource HintText}" Margin="0,6,0,14" />
@@ -148,7 +148,7 @@
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE714;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE714;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Vídeo" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Mudanças de vídeo reiniciam a captura de clipes." Style="{StaticResource HintText}" Margin="0,6,0,16" />
@@ -211,7 +211,7 @@
             <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Capturas de tela" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="As capturas ficam na pasta Screenshots, com uma subpasta para cada jogo, igual aos clipes."
@@ -259,7 +259,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE765;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Teclas de atalho" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Clique no campo e pressione a combinação de teclas. Funcionam mesmo dentro do jogo. Esc cancela."
@@ -322,7 +322,7 @@
                     <DockPanel>
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding Enabled}" VerticalAlignment="Center" />
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xE720;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="Comando de voz" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                         </StackPanel>
                     </DockPanel>
@@ -441,7 +441,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE8BD;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE8BD;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Aviso na tela" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Aparece quando um clipe ou uma captura de tela é salva e o PoPreyClip não está na frente."
@@ -466,7 +466,7 @@
                     <DockPanel>
                         <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding PlaySoundOnClip}" VerticalAlignment="Center" />
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xEA8F;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="Som ao salvar clipe" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                         </StackPanel>
                     </DockPanel>
@@ -519,7 +519,7 @@
             <Border Style="{StaticResource Card}" DataContext="{Binding Watched}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Jogos e apps vigiados" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Programas desta lista contam como jogo assim que abrem, mesmo fora da tela cheia. Use para jogos que não são detectados sozinhos ou para qualquer app que você queira gravar."
@@ -583,7 +583,7 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Atualizações" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
                     <DockPanel Margin="0,14,0,0">

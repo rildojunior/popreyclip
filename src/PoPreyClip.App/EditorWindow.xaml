@@ -38,7 +38,7 @@
                 <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fechar" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{StaticResource AccentHoverBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                 <TextBlock Text="Editar clipe" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding FileName}" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" Margin="12,1,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </StackPanel>

@@ -26,7 +26,7 @@
                                 <TextBlock Text="Separado + unificado" Style="{StaticResource LabelText}" />
                                 <TextBlock Text="Faixa &quot;Mix&quot; e uma faixa por fonte." Style="{StaticResource HintText}" Margin="0,3,0,0" />
                                 <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="4" Padding="6,1" Margin="0,8,0,0" HorizontalAlignment="Left">
-                                    <TextBlock Text="Recomendado" FontSize="11" Foreground="{StaticResource AccentHoverBrush}" />
+                                    <TextBlock Text="Recomendado" FontSize="11" Foreground="{StaticResource AccentTextBrush}" />
                                 </Border>
                             </StackPanel>
                         </RadioButton>
@@ -72,7 +72,7 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Width="44" Height="44" CornerRadius="12" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Top">
-                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource IconText}" FontSize="19" Foreground="{StaticResource AccentHoverBrush}" />
+                                    <TextBlock Text="{Binding Icon}" Style="{StaticResource IconText}" FontSize="19" Foreground="{StaticResource AccentTextBrush}" />
                                 </Border>
 
                                 <StackPanel Grid.Column="1" Margin="16,0,20,0" VerticalAlignment="Center">
