@@ -61,8 +61,7 @@ public sealed class SettingsViewModel : ObservableObject
         OpenFolderCommand = new RelayCommand(() => ClipLibrary.OpenFolder(_store.Current.ClipFolder));
         ApplyFolderCommand = new RelayCommand(() => ApplyFolder(ClipFolderText));
         OpenConfigFileCommand = new RelayCommand(() => ClipLibrary.Play(_store.FilePath));
-        OpenLogsCommand = new RelayCommand(() => ClipLibrary.OpenFolder(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PoPreyClip", "logs")));
+        OpenLogsCommand = new RelayCommand(() => ClipLibrary.OpenFolder(Log.LogDirectory));
         Sections =
         [
             new("geral", "Geral", GoToSection),

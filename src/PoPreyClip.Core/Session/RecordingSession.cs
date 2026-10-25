@@ -51,6 +51,12 @@ public sealed class RecordingSession : IDisposable
     /// <summary>Games whose window could not be captured; they are filmed through the monitor instead.</summary>
     private readonly HashSet<int> _windowCaptureFailed = [];
 
+    /// <summary>When the monitor capture last dropped, to give up when Windows keeps taking it away.</summary>
+    private readonly Queue<long> _monitorDrops = new();
+
+    private const int MaxMonitorDrops = 3;
+    private const long MonitorDropWindowMs = 60_000;
+
     public RecordingSession(ConfigStore store)
     {
         _store = store;
@@ -478,9 +484,26 @@ public sealed class RecordingSession : IDisposable
                     Log.Warn($"A captura da janela falhou: {pipeline.Recorder.ReadFfmpegLogTail()}");
                     restart = $"A captura da janela de {game.DisplayName} parou. Gravando o monitor no lugar.";
                 }
+                else if (pipeline.Recorder.HasExited && !source.IsWindow && pipeline.Recorder.VideoExited)
+                {
+                    // Windows takes the screen away on resolution/HDR changes, fullscreen switches, UAC or Ctrl+Alt+Del
+                    // (ddagrab: AcquireNextFrame failed 887a0026). It comes back right after, so just start again.
+                    Log.Warn($"A captura do monitor caiu: {pipeline.Recorder.ReadFfmpegLogTail()}");
+                    if (CountMonitorDrop())
+                    {
+                        restart = "A captura do monitor foi interrompida pelo Windows: reconectando.";
+                    }
+                    else
+                    {
+                        failure = "O Windows interrompeu a captura do monitor várias vezes seguidas e a gravação foi parada. "
+                            + "Isso costuma acontecer quando o jogo muda de resolução ou usa tela cheia exclusiva. Tente o modo "
+                            + "tela cheia sem bordas no jogo ou Configurações → Captura → Vídeo → O que gravar → Só a janela do jogo.";
+                    }
+                }
                 else if (pipeline.Recorder.HasExited)
                 {
-                    failure = $"O FFmpeg parou (código {pipeline.Recorder.ExitCode}). {pipeline.Recorder.ReadFfmpegLogTail()}";
+                    Log.Error($"O FFmpeg parou (código {pipeline.Recorder.ExitCode}): {pipeline.Recorder.ReadFfmpegLogTail()}");
+                    failure = "A gravação parou porque o FFmpeg fechou de forma inesperada.";
                 }
                 else
                 {
@@ -512,6 +535,19 @@ public sealed class RecordingSession : IDisposable
             Stop();
             Failed?.Invoke(failure);
         }
+    }
+
+    /// <summary>Notes a monitor capture drop; false once it dropped too often in the last minute (then it is a real failure).</summary>
+    private bool CountMonitorDrop()
+    {
+        var now = Environment.TickCount64;
+        while (_monitorDrops.TryPeek(out var first) && now - first > MonitorDropWindowMs)
+        {
+            _monitorDrops.Dequeue();
+        }
+
+        _monitorDrops.Enqueue(now);
+        return _monitorDrops.Count <= MaxMonitorDrops;
     }
 
     /// <summary>Settings that require a new ffmpeg process when they change.</summary>

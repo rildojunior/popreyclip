@@ -187,7 +187,14 @@
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" Command="{Binding DismissErrorCommand}" Width="28" Height="28" />
                     <TextBlock Text="&#xE783;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource DangerBrush}" FontSize="16" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding ErrorMessage}" Margin="12,0" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <StackPanel Margin="12,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Abrir pasta do log" Command="{Binding OpenLogFolderCommand}" Padding="12,6"
+                                    ToolTip="Os detalhes técnicos do erro ficam no arquivo de log. Envie-o para reportar o problema." />
+                            <Button Content="Reiniciar o app" Command="{Binding RestartAppCommand}" Padding="12,6" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
                 </DockPanel>
             </Border>
             </StackPanel>

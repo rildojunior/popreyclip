@@ -89,6 +89,10 @@ internal sealed class ReplayRecorder : IDisposable
 
     public int ExitCode => _processes.FirstOrDefault(p => p.Process.HasExited).Process?.ExitCode ?? 0;
 
+    /// <summary>True when the video process (always started last) ended while the audio one still runs.</summary>
+    public bool VideoExited => _processes.Count > 0 && _processes[^1].Process.HasExited
+        && _processes.SkipLast(1).All(p => !p.Process.HasExited);
+
     /// <summary>
     /// Starts the audio process, then <paramref name="startPacer"/> (audio flows into the pipes), waits for the
     /// first sample and starts the video process aligned to it.
@@ -119,7 +123,8 @@ internal sealed class ReplayRecorder : IDisposable
                 }
                 else
                 {
-                    throw new InvalidOperationException($"O FFmpeg não começou a gravar o áudio. {ReadFfmpegLogTail()}");
+                    Log.Error($"O FFmpeg não começou a gravar o áudio: {ReadFfmpegLogTail()}");
+                    throw new InvalidOperationException("O FFmpeg não começou a gravar o áudio.");
                 }
             }
             catch (AggregateException ex) when (ex.InnerException is TaskCanceledException)

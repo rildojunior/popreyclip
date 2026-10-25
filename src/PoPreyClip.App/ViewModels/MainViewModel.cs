@@ -93,6 +93,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         });
         DismissErrorCommand = new RelayCommand(() => ErrorMessage = null);
+        OpenLogFolderCommand = Settings.OpenLogsCommand;
+        RestartAppCommand = new RelayCommand(() =>
+        {
+            // The new copy waits for this one to exit before taking the single-instance lock, like after an update.
+            var info = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+            info.ArgumentList.Add("--wait-pid");
+            info.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var argument in App.ForwardArguments.Where(a => a != "--minimized"))
+            {
+                info.ArgumentList.Add(argument);
+            }
+
+            System.Diagnostics.Process.Start(info)?.Dispose();
+            exitForUpdate();
+        });
         ToastOpenCommand = new RelayCommand(() =>
         {
             if (_toastPath is not null)
@@ -208,6 +223,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand NavigateCommand { get; }
 
     public ICommand DismissErrorCommand { get; }
+
+    public ICommand OpenLogFolderCommand { get; }
+
+    public ICommand RestartAppCommand { get; }
 
     public ICommand ToastOpenCommand { get; }
 

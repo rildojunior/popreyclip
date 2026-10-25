@@ -14,7 +14,7 @@ public sealed record LogEntry(DateTime Time, LogLevel Level, string Message);
 public static class Log
 {
     private static readonly object Gate = new();
-    private static readonly string LogDirectory = Path.Combine(
+    public static readonly string LogDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PoPreyClip", "logs");
 
     public static bool Verbose { get; set; }
