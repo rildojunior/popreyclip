@@ -167,6 +167,70 @@ internal static class Win32
         return GetMonitorInfoW(MonitorFromWindow(hwnd, MonitorDefaultToNearest), ref info) ? info.Monitor : default;
     }
 
+    /// <summary>Size in real pixels of the window's inside (what window capture films), or (0, 0) if unknown.</summary>
+    public static (int Width, int Height) GetClientSize(IntPtr hwnd) => InPhysicalPixels(() =>
+        GetClientRect(hwnd, out var rect) ? (rect.Right - rect.Left, rect.Bottom - rect.Top) : (0, 0));
+
+    /// <summary>
+    /// Size in real pixels of the n-th monitor, in the order the monitor list in Settings shows them, or (0, 0) if
+    /// there is no such monitor.
+    /// </summary>
+    public static (int Width, int Height) GetMonitorSize(int index) => InPhysicalPixels(() =>
+    {
+        var sizes = new List<(int, int)>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (monitor, _, _, _) =>
+        {
+            var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>() };
+            if (GetMonitorInfoW(monitor, ref info))
+            {
+                sizes.Add((info.Monitor.Right - info.Monitor.Left, info.Monitor.Bottom - info.Monitor.Top));
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return index >= 0 && index < sizes.Count ? sizes[index] : (0, 0);
+    });
+
+    /// <summary>Runs a size query without Windows scaling the answer down for display zoom (125%, 150%...).</summary>
+    private static T InPhysicalPixels<T>(Func<T> query)
+    {
+        var previous = IntPtr.Zero;
+        try
+        {
+            previous = SetThreadDpiAwarenessContext(DpiAwarenessPerMonitorV2);
+        }
+        catch (EntryPointNotFoundException)
+        {
+        }
+
+        try
+        {
+            return query();
+        }
+        finally
+        {
+            if (previous != IntPtr.Zero)
+            {
+                SetThreadDpiAwarenessContext(previous);
+            }
+        }
+    }
+
+    private static readonly IntPtr DpiAwarenessPerMonitorV2 = new(-4);
+
+    private delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, IntPtr rect, IntPtr data);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr hwnd, out Rect rect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
     /// <summary>True when the window covers its whole monitor (exclusive fullscreen or borderless windowed).</summary>
     public static bool IsFullscreen(IntPtr hwnd)
     {

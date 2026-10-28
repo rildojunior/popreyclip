@@ -17,6 +17,18 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
+        <!-- Resolution / bitrate item: heavy choices in yellow or red, like Medal -->
+        <DataTemplate x:Key="VideoChoiceTemplate">
+            <TextBlock x:Name="Text" Text="{Binding Label}" />
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Tone}" Value="warning">
+                    <Setter TargetName="Text" Property="Foreground" Value="{StaticResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Tone}" Value="danger">
+                    <Setter TargetName="Text" Property="Foreground" Value="{StaticResource DangerBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
         <Style x:Key="GroupTitle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
             <Setter Property="FontSize" Value="18" />
@@ -170,31 +182,70 @@
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding FpsOptions}" SelectedItem="{Binding Fps}" DisplayMemberPath="Label" />
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Quadros por segundo" Style="{StaticResource LabelText}" />
-                        </StackPanel>
-                    </DockPanel>
+                    <StackPanel>
+                        <TextBlock Text="Qualidade" Style="{StaticResource LabelText}" />
+                        <TextBlock Text="Escolha uma predefinição ou ajuste do seu jeito em Personalizado. Quanto maior, mais pesa no PC e maiores ficam os clipes." Style="{StaticResource HintText}" />
+                        <UniformGrid Columns="4" Margin="0,12,0,0">
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="videoPreset" Margin="0,0,6,0" IsChecked="{Binding IsLowPreset}">
+                                <StackPanel>
+                                    <TextBlock Text="Baixa qualidade" Style="{StaticResource LabelText}" />
+                                    <TextBlock Text="PCs mais fracos e clipes leves" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                    <TextBlock Text="360p · 24 FPS" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="videoPreset" Margin="3,0" IsChecked="{Binding IsStandardPreset}">
+                                <StackPanel>
+                                    <TextBlock Text="Padrão" Style="{StaticResource LabelText}" />
+                                    <TextBlock Text="Desempenho e envio rápido" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                    <TextBlock Text="720p · 60 FPS" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="videoPreset" Margin="3,0" IsChecked="{Binding IsHighPreset}">
+                                <StackPanel>
+                                    <TextBlock Text="Alta qualidade" Style="{StaticResource LabelText}" />
+                                    <TextBlock Text="Imagem melhor, clipes maiores" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                    <TextBlock Text="1080p · 60 FPS" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton Style="{StaticResource OptionCard}" GroupName="videoPreset" Margin="6,0,0,0" IsChecked="{Binding IsCustomPreset}">
+                                <StackPanel>
+                                    <TextBlock Text="Personalizado" Style="{StaticResource LabelText}" />
+                                    <TextBlock Text="Escolha resolução, FPS e bitrate" Style="{StaticResource HintText}" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </RadioButton>
+                        </UniformGrid>
+                        <TextBlock Text="{Binding VideoQualitySummary}" Style="{StaticResource HintText}" Margin="0,10,0,0" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsCustomPreset, Converter={StaticResource BoolToVisibility}}">
+                        <Border Style="{StaticResource Divider}" />
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding ResolutionOptions}" SelectedItem="{Binding Resolution}" ItemTemplate="{StaticResource VideoChoiceTemplate}" />
+                            <StackPanel Style="{StaticResource RowLabel}">
+                                <TextBlock Text="Resolução" Style="{StaticResource LabelText}" />
+                                <TextBlock Text="Altura do clipe. 2K e 4K pesam bastante." Style="{StaticResource HintText}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Border Style="{StaticResource Divider}" />
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding FpsOptions}" SelectedItem="{Binding Fps}" DisplayMemberPath="Label" />
+                            <StackPanel Style="{StaticResource RowLabel}">
+                                <TextBlock Text="Quadros por segundo" Style="{StaticResource LabelText}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Border Style="{StaticResource Divider}" />
+                        <DockPanel>
+                            <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding BitrateOptions}" SelectedItem="{Binding Bitrate}" ItemTemplate="{StaticResource VideoChoiceTemplate}" />
+                            <StackPanel Style="{StaticResource RowLabel}">
+                                <TextBlock Text="Bitrate" Style="{StaticResource LabelText}" />
+                                <TextBlock Text="Megabits por segundo. Mais bitrate, imagem mais limpa e arquivo maior (15M ≈ 56 MB num clipe de 30 s)." Style="{StaticResource HintText}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
                     <Border Style="{StaticResource Divider}" />
                     <DockPanel>
                         <ComboBox DockPanel.Dock="Right" Width="300" ItemsSource="{Binding Monitors}" SelectedItem="{Binding Monitor}" DisplayMemberPath="Label" />
                         <StackPanel Style="{StaticResource RowLabel}">
                             <TextBlock Text="Monitor gravado" Style="{StaticResource LabelText}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <Border Style="{StaticResource Divider}" />
-                    <DockPanel>
-                        <Grid DockPanel.Dock="Right" Width="300">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Slider Minimum="12" Maximum="37" Value="{Binding Quality, Mode=TwoWay, Delay=200}" IsSnapToTickEnabled="True" TickFrequency="1" />
-                        </Grid>
-                        <StackPanel Style="{StaticResource RowLabel}">
-                            <TextBlock Text="Qualidade" Style="{StaticResource LabelText}" />
-                            <TextBlock Text="{Binding QualityText}" Style="{StaticResource HintText}" />
                         </StackPanel>
                     </DockPanel>
                     <Border Style="{StaticResource Divider}" />

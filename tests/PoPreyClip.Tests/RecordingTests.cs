@@ -82,8 +82,8 @@ public class RecordingTests
         foreach (var args in new[] { direct, copied })
         {
             Assert.Equal("h264_amf", args[args.IndexOf("-c:v") + 1]);
-            Assert.Equal("cqp", args[args.IndexOf("-rc") + 1]);
-            Assert.Equal(args[args.IndexOf("-qp_i") + 1], args[args.IndexOf("-qp_p") + 1]);
+            Assert.Equal("vbr_peak", args[args.IndexOf("-rc") + 1]);
+            Assert.Equal("15000k", args[args.IndexOf("-b:v") + 1]);
             Assert.Equal(args[args.IndexOf("-g") + 1], args[args.IndexOf("-header_spacing") + 1]);
         }
     }
@@ -97,8 +97,8 @@ public class RecordingTests
         var args = ReplayRecorder.BuildVideoArguments(config, "h264_qsv", VideoSource.Monitor(0), DateTimeOffset.UtcNow, gpuFrames: true);
 
         Assert.Equal("hwdownload,format=bgra,format=nv12", args[args.IndexOf("-vf") + 1]);
-        Assert.Contains("-global_quality", args);
-        Assert.DoesNotContain("-qp_i", args);
+        Assert.Equal("15000k", args[args.IndexOf("-b:v") + 1]);
+        Assert.DoesNotContain("-global_quality", args);
     }
 
     [Theory]

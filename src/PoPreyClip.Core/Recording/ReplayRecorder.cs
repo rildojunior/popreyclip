@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using PoPreyClip.Audio;
 using PoPreyClip.Config;
+using PoPreyClip.Native;
 
 namespace PoPreyClip.Recording;
 
@@ -135,7 +136,12 @@ internal sealed class ReplayRecorder : IDisposable
 
         var encoder = EncoderSelector.Resolve(_config);
         var gpuFrames = EncoderSelector.TakesGpuFrames(_config, encoder);
-        Launch("video", BuildVideoArguments(_config, encoder, Source, timeZero, gpuFrames), video: true);
+        var size = Source.IsWindow ? Win32.GetClientSize(Source.Window) : Win32.GetMonitorSize(_config.Video.MonitorIndex);
+        var output = OutputSize(_config.Video.Resolution, size);
+        Log.Info(output is { } o
+            ? $"Vídeo: {size.Width}x{size.Height} reduzido para {o.Width}x{o.Height}, {_config.Video.Fps} FPS, {_config.Video.BitrateMbps} Mbps."
+            : $"Vídeo: {size.Width}x{size.Height} no tamanho original, {_config.Video.Fps} FPS, {_config.Video.BitrateMbps} Mbps.");
+        Launch("video", BuildVideoArguments(_config, encoder, Source, timeZero, gpuFrames, size), video: true);
     }
 
     private void Launch(string name, IReadOnlyList<string> arguments, bool video)
@@ -194,24 +200,47 @@ internal sealed class ReplayRecorder : IDisposable
         }
     }
 
+    /// <summary>
+    /// Size the clip is recorded at: the source shrunk to <paramref name="height"/> keeping its shape, or null when the
+    /// source is already that small (it is never enlarged) or its size is unknown.
+    /// </summary>
+    internal static (int Width, int Height)? OutputSize(int height, (int Width, int Height) source)
+    {
+        if (source.Width <= 0 || source.Height <= 0 || source.Height <= height)
+        {
+            return null;
+        }
+
+        var width = (int)Math.Round(source.Width * (double)height / source.Height / 2) * 2;
+        return (Math.Max(2, width), height / 2 * 2);
+    }
+
     /// <param name="gpuFrames">AMD AMF takes the captured frames straight from the video card (NVENC always does).</param>
+    /// <param name="sourceSize">Size of the window or monitor being filmed, used to shrink it to the chosen resolution.</param>
     internal static List<string> BuildVideoArguments(AppConfig config, string? encoderOverride, VideoSource source, DateTimeOffset timeZero,
-        bool gpuFrames = false)
+        bool gpuFrames = false, (int Width, int Height) sourceSize = default)
     {
         var video = config.Video;
         var encoder = encoderOverride ?? (string.Equals(video.Encoder, EncoderSelector.Auto, StringComparison.OrdinalIgnoreCase) ? "libx264" : video.Encoder);
         var isNvenc = encoder.EndsWith("_nvenc", StringComparison.OrdinalIgnoreCase);
         var isAmf = encoder.EndsWith("_amf", StringComparison.OrdinalIgnoreCase);
-        var quality = video.Quality.ToString(CultureInfo.InvariantCulture);
+        // Target bitrate, with room for busy scenes (peak 1.5x) and a 2 s buffer.
+        var bitrate = Kbps(video.BitrateMbps * 1000);
+        var maxrate = Kbps(video.BitrateMbps * 1500);
+        var bufsize = Kbps(video.BitrateMbps * 2000);
         // A keyframe starts every segment, so a clip can begin at any of them.
         var gop = (video.Fps * video.SegmentSeconds).ToString(CultureInfo.InvariantCulture);
         var fps = video.Fps.ToString(CultureInfo.InvariantCulture);
         var cursor = video.ShowCursor ? 1 : 0;
+        var output = OutputSize(video.Resolution, sourceSize);
 
         // Window capture films only the game (no alt-tab, overlays or desktop). Frames arrive when the game draws;
-        // width/height -2 keep the size even, which the encoders need.
+        // width/height -2 keep the size even, which the encoders need. To record smaller, the capture itself shrinks the
+        // picture on the video card (scale_aspect), which costs nothing extra.
         var input = source.IsWindow
-            ? $"gfxcapture=hwnd={(ulong)source.Window}:max_framerate={fps}:capture_cursor={cursor}:width=-2:height=-2"
+            ? $"gfxcapture=hwnd={(ulong)source.Window}:max_framerate={fps}:capture_cursor={cursor}:" + (output is { } size
+                ? $"width={size.Width}:height={size.Height}:resize_mode=scale_aspect"
+                : "width=-2:height=-2")
             : $"ddagrab=output_idx={video.MonitorIndex}:framerate={fps}:draw_mouse={cursor}";
 
         // Wall-clock timestamps (seconds since 1970) shifted at the input so 0 = the audio's first sample, and kept
@@ -227,36 +256,44 @@ internal sealed class ReplayRecorder : IDisposable
             "-fps_mode", "cfr", "-r", fps,
         };
 
-        // The capture hands over D3D11 frames. An encoder that can't read them gets a copy in system memory.
-        if (!isNvenc && !(isAmf && gpuFrames))
+        // The capture hands over D3D11 frames. An encoder that can't read them gets a copy in system memory. The monitor
+        // capture can't be shrunk on the video card with this FFmpeg (scale_d3d11 refuses its frames), so it is shrunk
+        // on that copy; shrinking there is cheaper than copying the full-size picture.
+        var shrinkMonitor = !source.IsWindow && output is not null;
+        if (shrinkMonitor || (!isNvenc && !(isAmf && gpuFrames)))
         {
             var format = encoder.Equals("libx264", StringComparison.OrdinalIgnoreCase) ? "yuv420p" : "nv12";
-            args.AddRange(["-vf", $"hwdownload,format=bgra,format={format}"]);
+            var scale = shrinkMonitor ? $"scale=w={output!.Value.Width}:h={output.Value.Height}:flags=fast_bilinear," : "";
+            args.AddRange(["-vf", $"hwdownload,format=bgra,{scale}format={format}"]);
         }
 
         if (isNvenc)
         {
-            args.AddRange(["-c:v", encoder, "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", quality, "-b:v", "0", "-forced-idr", "1"]);
+            args.AddRange(["-c:v", encoder, "-preset", "p4", "-tune", "hq", "-rc", "vbr",
+                "-b:v", bitrate, "-maxrate", maxrate, "-bufsize", bufsize, "-forced-idr", "1"]);
         }
         else if (isAmf)
         {
-            // Constant quality; every keyframe is an IDR with the stream headers, so each segment plays on its own.
-            args.AddRange(["-c:v", encoder, "-usage", "transcoding", "-quality", "balanced", "-rc", "cqp",
-                "-qp_i", quality, "-qp_p", quality, "-bf", "0", "-forced_idr", "1", "-header_spacing", gop]);
+            // Every keyframe is an IDR with the stream headers, so each segment plays on its own.
+            args.AddRange(["-c:v", encoder, "-usage", "transcoding", "-quality", "balanced", "-rc", "vbr_peak",
+                "-b:v", bitrate, "-maxrate", maxrate, "-bufsize", bufsize, "-bf", "0", "-forced_idr", "1", "-header_spacing", gop]);
         }
         else if (encoder.EndsWith("_qsv", StringComparison.OrdinalIgnoreCase))
         {
-            args.AddRange(["-c:v", encoder, "-preset", "veryfast", "-global_quality", quality, "-forced_idr", "1"]);
+            args.AddRange(["-c:v", encoder, "-preset", "veryfast", "-b:v", bitrate, "-maxrate", maxrate, "-bufsize", bufsize,
+                "-forced_idr", "1"]);
         }
         else
         {
-            args.AddRange(["-c:v", "libx264", "-preset", "veryfast", "-crf", quality]);
+            args.AddRange(["-c:v", "libx264", "-preset", "veryfast", "-b:v", bitrate, "-maxrate", maxrate, "-bufsize", bufsize]);
         }
 
         args.AddRange(["-g", gop]);
         args.AddRange(SegmentArguments(video, VideoSegmentPrefix));
         return args;
     }
+
+    private static string Kbps(int kbps) => kbps.ToString(CultureInfo.InvariantCulture) + "k";
 
     internal static List<string> BuildAudioArguments(AppConfig config, IReadOnlyList<string> audioPipes)
     {

@@ -175,6 +175,7 @@ public sealed class AppConfig
             ? VideoConfig.CaptureMonitor
             : VideoConfig.CaptureGameWindow;
         Video.Fps = Math.Clamp(Video.Fps, 10, 240);
+        VideoPresets.Normalize(Video);
         Video.SegmentSeconds = Math.Clamp(Video.SegmentSeconds, 1, 10);
         Video.Quality = Math.Clamp(Video.Quality, 1, 51);
         Audio.AudioBitrateKbps = Math.Clamp(Audio.AudioBitrateKbps, 64, 512);
@@ -201,6 +202,15 @@ public sealed class VideoConfig
     /// </summary>
     public string Capture { get; set; } = CaptureGameWindow;
 
+    /// <summary>Quality preset like Medal's: <see cref="VideoPresets.Low"/>, Standard, High or Custom.</summary>
+    public string Preset { get; set; } = VideoPresets.High;
+
+    /// <summary>Clip height in pixels (2160, 1440, 1080, 720, 480 or 360). A smaller game or monitor is never enlarged.</summary>
+    public int Resolution { get; set; } = 1080;
+
+    /// <summary>Video bitrate in megabits per second (one of <see cref="VideoPresets.Bitrates"/>).</summary>
+    public int BitrateMbps { get; set; } = 15;
+
     public int Fps { get; set; } = 60;
 
     /// <summary>Monitor index for Desktop Duplication capture (0 = primary output of the first GPU).</summary>
@@ -209,7 +219,10 @@ public sealed class VideoConfig
     /// <summary>ffmpeg video encoder: "auto" (NVIDIA, AMD or Intel when available, otherwise CPU), h264_nvenc, hevc_nvenc, av1_nvenc, h264_amf, h264_qsv or libx264.</summary>
     public string Encoder { get; set; } = "auto";
 
-    /// <summary>Constant quality value (CQ/CRF). Lower is better quality and bigger files.</summary>
+    /// <summary>
+    /// Constant quality value (CQ/CRF) used by the clip editor when it has to re-encode. Lower is better quality and
+    /// bigger files. Recording uses <see cref="BitrateMbps"/>.
+    /// </summary>
     public int Quality { get; set; } = 23;
 
     /// <summary>Length of each segment in the replay buffer.</summary>

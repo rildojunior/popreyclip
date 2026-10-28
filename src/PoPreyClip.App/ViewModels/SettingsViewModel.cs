@@ -11,6 +11,15 @@ public sealed record Option<T>(T Value, string Label)
     public override string ToString() => Label;
 }
 
+/// <summary>A resolution or bitrate in the list. <see cref="Tone"/> colors heavy choices, like Medal.</summary>
+public sealed record VideoChoice(int Value, string Label, string Tone = "")
+{
+    public const string Warning = "warning";
+    public const string Danger = "danger";
+
+    public override string ToString() => Label;
+}
+
 /// <summary>A group of settings cards, listed under "Configurações" in the sidebar.</summary>
 public sealed class SettingsSection(string id, string title, Action<string> go) : ObservableObject
 {
@@ -320,7 +329,23 @@ public sealed class SettingsViewModel : ObservableObject
     // ---- Video ----
 
     public IReadOnlyList<Option<int>> FpsOptions { get; } =
-        [new(30, "30 FPS"), new(60, "60 FPS"), new(120, "120 FPS"), new(144, "144 FPS")];
+        [new(24, "24 FPS"), new(30, "30 FPS"), new(60, "60 FPS"), new(120, "120 FPS"), new(144, "144 FPS")];
+
+    /// <summary>Clip sizes, like Medal's list. 2K and 4K are marked red: they weigh a lot on the PC and the files.</summary>
+    public IReadOnlyList<VideoChoice> ResolutionOptions { get; } =
+    [
+        new(2160, "UHD 4K (2160p)", VideoChoice.Danger),
+        new(1440, "QHD 2K (1440p)", VideoChoice.Danger),
+        new(1080, "Full HD (1080p)"),
+        new(720, "Alto (720p)"),
+        new(480, "Médio (480p)"),
+        new(360, "Baixo (360p)"),
+    ];
+
+    /// <summary>Bitrates, like Medal's list: from 30M up in yellow, from 70M up in red (very big files).</summary>
+    public IReadOnlyList<VideoChoice> BitrateOptions { get; } = VideoPresets.Bitrates
+        .Select(b => new VideoChoice(b, $"{b}M", b >= 70 ? VideoChoice.Danger : b >= 30 ? VideoChoice.Warning : ""))
+        .ToList();
 
     public IReadOnlyList<Option<string>> EncoderOptions { get; } =
     [
@@ -361,8 +386,87 @@ public sealed class SettingsViewModel : ObservableObject
             if (value is not null)
             {
                 _store.Update(c => c.Video.Fps = value.Value);
+                NotifyVideoQuality();
             }
         }
+    }
+
+    public VideoChoice? Resolution
+    {
+        get => ResolutionOptions.FirstOrDefault(o => o.Value == C.Video.Resolution);
+        set
+        {
+            if (value is not null)
+            {
+                _store.Update(c => c.Video.Resolution = value.Value);
+                NotifyVideoQuality();
+            }
+        }
+    }
+
+    public VideoChoice? Bitrate
+    {
+        get => BitrateOptions.FirstOrDefault(o => o.Value == C.Video.BitrateMbps);
+        set
+        {
+            if (value is not null)
+            {
+                _store.Update(c => c.Video.BitrateMbps = value.Value);
+                NotifyVideoQuality();
+            }
+        }
+    }
+
+    // One flag per preset card. Picking Custom keeps the current values so they can be changed one by one.
+    public bool IsLowPreset
+    {
+        get => C.Video.Preset == VideoPresets.Low;
+        set => PickPreset(value, VideoPresets.Low);
+    }
+
+    public bool IsStandardPreset
+    {
+        get => C.Video.Preset == VideoPresets.Standard;
+        set => PickPreset(value, VideoPresets.Standard);
+    }
+
+    public bool IsHighPreset
+    {
+        get => C.Video.Preset == VideoPresets.High;
+        set => PickPreset(value, VideoPresets.High);
+    }
+
+    public bool IsCustomPreset
+    {
+        get => C.Video.Preset == VideoPresets.Custom;
+        set => PickPreset(value, VideoPresets.Custom);
+    }
+
+    /// <summary>What the chosen settings record, e.g. "1080p · 60 FPS · 15 Mbps".</summary>
+    public string VideoQualitySummary =>
+        $"{C.Video.Resolution}p · {C.Video.Fps} FPS · {C.Video.BitrateMbps} Mbps. Um jogo ou monitor menor que isso é gravado no tamanho dele, sem ampliar.";
+
+    private void PickPreset(bool picked, string preset)
+    {
+        if (!picked || C.Video.Preset == preset)
+        {
+            return;
+        }
+
+        _store.Update(c => VideoPresets.Apply(c.Video, preset));
+        NotifyVideoQuality();
+    }
+
+    private void NotifyVideoQuality()
+    {
+        OnPropertyChanged(nameof(Fps));
+        OnPropertyChanged(nameof(Resolution));
+        OnPropertyChanged(nameof(Bitrate));
+        OnPropertyChanged(nameof(IsLowPreset));
+        OnPropertyChanged(nameof(IsStandardPreset));
+        OnPropertyChanged(nameof(IsHighPreset));
+        OnPropertyChanged(nameof(IsCustomPreset));
+        OnPropertyChanged(nameof(VideoQualitySummary));
     }
 
     public Option<string>? Encoder
@@ -372,7 +476,16 @@ public sealed class SettingsViewModel : ObservableObject
         {
             if (value is not null)
             {
-                _store.Update(c => c.Video.Encoder = value.Value);
+                // H.265 and AV1 need less bitrate: a preset follows the encoder, like Medal.
+                _store.Update(c =>
+                {
+                    c.Video.Encoder = value.Value;
+                    if (c.Video.Preset != VideoPresets.Custom)
+                    {
+                        VideoPresets.Apply(c.Video, c.Video.Preset);
+                    }
+                });
+                NotifyVideoQuality();
             }
         }
     }
@@ -388,27 +501,6 @@ public sealed class SettingsViewModel : ObservableObject
             }
         }
     }
-
-    /// <summary>Shown as "quality" (higher is better) while the config stores CQ (lower is better).</summary>
-    public int Quality
-    {
-        get => 52 - C.Video.Quality;
-        set
-        {
-            _store.Update(c => c.Video.Quality = Math.Clamp(52 - value, 15, 40));
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(QualityText));
-        }
-    }
-
-    public string QualityText => C.Video.Quality switch
-    {
-        <= 18 => "Máxima (arquivos grandes)",
-        <= 22 => "Alta",
-        <= 27 => "Boa",
-        <= 32 => "Média",
-        _ => "Baixa (arquivos pequenos)",
-    };
 
     public bool ShowCursor
     {

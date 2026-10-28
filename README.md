@@ -166,7 +166,8 @@ Na tela **Configurações** você troca:
 - os atalhos (clique no campo e aperte as teclas);
 - a duração do clipe (de 5 segundos a 5 minutos);
 - o que gravar: **só a janela do jogo** (padrão) ou o **monitor inteiro**;
-- o codificador, os quadros por segundo, o monitor e a qualidade do vídeo;
+- o codificador e o monitor gravado;
+- a **qualidade do vídeo**, em **Captura → Vídeo → Qualidade**: predefinições **Baixa qualidade** (360p, 24 FPS), **Padrão** (720p, 60 FPS) e **Alta qualidade** (1080p, 60 FPS, a padrão), ou **Personalizado** para escolher a **resolução** (de 360p a 4K), os **quadros por segundo** e o **bitrate** (de 3M a 100M). Um jogo ou monitor menor que a resolução escolhida é gravado no tamanho dele, sem ampliar;
 - o aviso na tela (o do PoPreyClip, a notificação do Windows ou nenhum), em **Aviso na tela**;
 - o som do clipe e o som da captura de tela, com botão **Ouvir** para testar;
 - o que acontece ao fechar a janela;
