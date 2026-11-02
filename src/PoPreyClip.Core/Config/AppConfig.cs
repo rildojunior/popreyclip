@@ -18,7 +18,7 @@ public sealed class AppConfig
     private const int CurrentHotkeyDefaults = 1;
     private static readonly string[] OldToggleRecordingHotkeys = ["Ctrl+Alt+F8", "Alt+F9"];
 
-    /// <summary>Root export folder. Clips go to &lt;ClipFolder&gt;\Clips\&lt;Game&gt;\.</summary>
+    /// <summary>Root export folder. Clips go to &lt;ClipFolder&gt;\PoPrey Game Capture\&lt;Game&gt;\.</summary>
     public string ClipFolder { get; set; } = @"C:\PoPreyClip";
 
     /// <summary>Length of each saved clip, in seconds.</summary>

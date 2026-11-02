@@ -36,10 +36,10 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🎯 **Grava só o jogo:** filma a janela do jogo, não a tela inteira. Alt-tab, outras janelas e a área de trabalho não aparecem no clipe, e o som continua sincronizado mesmo se o jogo for minimizado.
 - 💤 **Modo espera:** sem jogo aberto, o app fica parado e não gasta recursos. A captura de clipes liga sozinha quando o jogo abre e desliga quando ele fecha. Um aviso no canto da tela, **Pronto para clipar**, confirma que o jogo foi detectado e mostra os atalhos.
 - 👀 **Jogos e apps vigiados:** escolha qualquer janela (um jogo que não foi detectado, um emulador, um programa) para ser tratada como jogo assim que abrir.
-- 📁 **Uma pasta por jogo:** o jogo aberto é detectado sozinho e cada clipe vai para `Clips\<Nome do Jogo>\`.
+- 📁 **Uma pasta por jogo:** o jogo aberto é detectado sozinho e cada clipe vai para `PoPrey Game Capture\<Nome do Jogo>\`, com as capturas de tela em `Screenshots` e os clipes editados em `Edits`, dentro da pasta do jogo.
 - 🎧 **Áudio separado por aplicativo:** jogo, microfone, Discord e qualquer outro programa viram faixas separadas no clipe, cada uma com seu volume.
 - 🎚️ **Mixer de áudio:** volume de 0 a 200%, reforço de até +30 dB para microfones baixos e um limitador que evita distorção.
-- 📸 **Captura de tela com F12:** imagem PNG salva em `Screenshots\<Nome do Jogo>\` e copiada para a área de transferência, pronta para colar no Discord.
+- 📸 **Captura de tela com F12:** imagem PNG salva em `PoPrey Game Capture\<Nome do Jogo>\Screenshots\` e copiada para a área de transferência, pronta para colar no Discord.
 - 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
 - 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo, mesmo com o jogo na frente. Entende qualquer palavra, então o nome do assistente e os comandos podem ser gírias ou nomes inventados. É reconhecido no seu PC, sem internet, e vem desligado.
@@ -113,8 +113,10 @@ Prefere deixar a captura ligada o tempo todo? Desligue **Ativar a captura de cli
 O clipe vai para:
 
 ```
-C:\PoPreyClip\Clips\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
+C:\PoPreyClip\PoPrey Game Capture\<Nome do Jogo>\PoPreyClip<NomeDoJogo><data e hora>.mp4
 ```
+
+As capturas de tela vão para `...\<Nome do Jogo>\Screenshots\` e os clipes editados salvos como vídeo novo vão para `...\<Nome do Jogo>\Edits\`.
 
 ### Salvar um clipe com a voz
 
@@ -137,7 +139,7 @@ Na tela **Clipes**, clique em **Editar** no clipe. No editor:
 - **Recortar a imagem:** escolha um formato em **Recortar imagem** (**9:16** para vídeo vertical, **1:1**, **4:5**, **16:9** ou **Livre**) e arraste o quadro sobre o vídeo.
 - **Volume do áudio:** cada faixa tem a sua barra, de 0 a 200%, e o som muda na hora enquanto o vídeo toca. Em clipes gravados com tudo numa faixa só, aparece uma barra única.
 - **Juntar o áudio em uma faixa:** para enviar a lugares que só tocam a primeira faixa, como o WhatsApp.
-- **Salvar:** **Salvar como novo vídeo** cria `<nome>-editado.mp4` na mesma pasta, e o original continua intacto. **Substituir o original** só troca o arquivo depois que a edição termina sem erro.
+- **Salvar:** **Salvar como novo vídeo** cria `<nome>_edit.mp4` na pasta `Edits`, dentro da pasta do jogo, e o original continua intacto. **Substituir o original** só troca o arquivo depois que a edição termina sem erro.
 
 > O clipe editado sempre começa exatamente onde você marcou. Quando você corta só o final, sem recortar a imagem, o vídeo é copiado sem perder qualidade e fica pronto na hora. Se o início cai no meio do vídeo ou a imagem é recortada, o vídeo é recodificado pela placa de vídeo e leva alguns segundos.
 

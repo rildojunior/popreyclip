@@ -4,13 +4,15 @@ namespace PoPreyClip.Clips;
 
 /// <summary>
 /// Builds export paths with one folder per game:
-/// &lt;root&gt;\Clips\&lt;Game Name&gt;\&lt;Prefix&gt;&lt;GameName&gt;&lt;yyyyMMddHHmmssfff&gt;.mp4
+/// &lt;root&gt;\PoPrey Game Capture\&lt;Game Name&gt;\&lt;Prefix&gt;&lt;GameName&gt;&lt;yyyyMMddHHmmssfff&gt;.mp4
+/// Screenshots go to the game's Screenshots subfolder and edited copies to its Edits subfolder.
 /// The folder keeps the readable game name; the file name drops spaces and symbols.
 /// </summary>
 public static class ClipPathBuilder
 {
-    public const string ClipsSubfolder = "Clips";
+    public const string RootSubfolder = "PoPrey Game Capture";
     public const string ScreenshotsSubfolder = "Screenshots";
+    public const string EditsSubfolder = "Edits";
     public const string UnknownGame = "Unknown Game";
 
     private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
@@ -27,16 +29,16 @@ public static class ClipPathBuilder
         return EnsureUnique(Path.Combine(folder, fileName));
     }
 
-    /// <summary>&lt;root&gt;Screenshots&lt;Game Name&gt;&lt;Prefix&gt;&lt;GameName&gt;&lt;yyyyMMddHHmmssfff&gt;.png</summary>
+    /// <summary>&lt;root&gt;\PoPrey Game Capture\&lt;Game Name&gt;\Screenshots\&lt;Prefix&gt;&lt;GameName&gt;&lt;yyyyMMddHHmmssfff&gt;.png</summary>
     public static string BuildScreenshotPath(string root, string gameName, DateTime timestamp, string prefix = "PoPreyClip")
     {
-        var folder = Path.Combine(root, ScreenshotsSubfolder, SanitizeFolderName(gameName));
+        var folder = Path.Combine(GetGameFolder(root, gameName), ScreenshotsSubfolder);
         var fileName = $"{CompactName(prefix)}{CompactName(gameName)}{timestamp:yyyyMMddHHmmssfff}.png";
         return EnsureUnique(Path.Combine(folder, fileName));
     }
 
     public static string GetGameFolder(string root, string gameName) =>
-        Path.Combine(root, ClipsSubfolder, SanitizeFolderName(gameName));
+        Path.Combine(root, RootSubfolder, SanitizeFolderName(gameName));
 
     /// <summary>Makes a game name safe as a Windows folder name while keeping it readable.</summary>
     public static string SanitizeFolderName(string? gameName)
@@ -98,7 +100,8 @@ public static class ClipPathBuilder
         return builder.ToString();
     }
 
-    private static string EnsureUnique(string path)
+    /// <summary>The path itself, or "name_1.ext", "name_2.ext" and so on when it is taken.</summary>
+    internal static string EnsureUnique(string path)
     {
         if (!File.Exists(path))
         {

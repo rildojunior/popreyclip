@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using PoPreyClip.Clips;
 using PoPreyClip.Config;
 using PoPreyClip.Library;
 
@@ -137,6 +138,7 @@ public sealed class ClipsViewModel : ObservableObject
         List<ClipInfo> clips;
         try
         {
+            ClipLibrary.MoveOldFolders(config);
             clips = ClipLibrary.Scan(config);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -207,7 +209,7 @@ public sealed class ClipsViewModel : ObservableObject
     /// <summary>Opens the clips folder of one game (its folder name, as in <see cref="ClipInfo.Game"/>).</summary>
     internal void OpenGameFolder(string game)
     {
-        var folder = Path.Combine(ClipLibrary.ClipsRoot(_store.Current), game);
+        var folder = Path.Combine(ClipLibrary.CaptureRoot(_store.Current), game);
         ClipLibrary.OpenFolder(Directory.Exists(folder) ? folder : _store.Current.ClipFolder);
     }
 
@@ -251,8 +253,8 @@ public sealed class ClipsViewModel : ObservableObject
     {
         if (SelectedFilter?.Game is { } game)
         {
-            var root = Kind == LibraryKind.Screenshots ? ClipLibrary.ScreenshotsRoot(_store.Current) : ClipLibrary.ClipsRoot(_store.Current);
-            ClipLibrary.OpenFolder(Path.Combine(root, game));
+            var folder = Path.Combine(ClipLibrary.CaptureRoot(_store.Current), game);
+            ClipLibrary.OpenFolder(Kind == LibraryKind.Screenshots ? Path.Combine(folder, ClipPathBuilder.ScreenshotsSubfolder) : folder);
         }
     }
 

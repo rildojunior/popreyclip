@@ -140,7 +140,7 @@ public sealed class SettingsViewModel : ObservableObject
         set => SetProperty(ref _clipFolderText, value);
     }
 
-    public string FolderExample => Path.Combine(C.ClipFolder, ClipPathBuilder.ClipsSubfolder, "Nome do Jogo",
+    public string FolderExample => Path.Combine(C.ClipFolder, ClipPathBuilder.RootSubfolder, "Nome do Jogo",
         $"{ClipPathBuilder.CompactName(C.FilePrefix)}NomeDoJogo{DateTime.Now:yyyyMMddHHmmssfff}.mp4");
 
     private void BrowseFolder()
@@ -180,7 +180,8 @@ public sealed class SettingsViewModel : ObservableObject
         _store.Update(c => c.ClipFolder = folder);
         ClipFolderText = folder;
         OnPropertyChanged(nameof(FolderExample));
-        Log.Info($"Novos clipes serão salvos em {Path.Combine(folder, ClipPathBuilder.ClipsSubfolder)}\\<Jogo>");
+        OnPropertyChanged(nameof(ScreenshotFolderExample));
+        Log.Info($"Novos clipes serão salvos em {Path.Combine(folder, ClipPathBuilder.RootSubfolder)}\\<Jogo>");
     }
 
     // ---- Clip ----
@@ -323,7 +324,7 @@ public sealed class SettingsViewModel : ObservableObject
         set => _store.Update(c => c.CopyScreenshotToClipboard = value);
     }
 
-    public string ScreenshotFolderExample => Path.Combine(C.ClipFolder, ClipPathBuilder.ScreenshotsSubfolder, "Nome do Jogo",
+    public string ScreenshotFolderExample => Path.Combine(C.ClipFolder, ClipPathBuilder.RootSubfolder, "Nome do Jogo", ClipPathBuilder.ScreenshotsSubfolder,
         $"{ClipPathBuilder.CompactName(C.FilePrefix)}NomeDoJogo{DateTime.Now:yyyyMMddHHmmssfff}.png");
 
     // ---- Video ----

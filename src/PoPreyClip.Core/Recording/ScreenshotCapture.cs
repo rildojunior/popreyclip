@@ -6,7 +6,7 @@ using PoPreyClip.Config;
 namespace PoPreyClip.Recording;
 
 /// <summary>
-/// Saves a lossless PNG of the recorded monitor to &lt;root&gt;\Screenshots\&lt;Game&gt;\, like Medal's
+/// Saves a lossless PNG of the recorded monitor to &lt;root&gt;\PoPrey Game Capture\&lt;Game&gt;\Screenshots\, like Medal's
 /// ScreenshotExporter. The frame comes straight from Desktop Duplication (the same source the recording
 /// uses), so it is uncompressed and works whether or not recording is running.
 /// </summary>

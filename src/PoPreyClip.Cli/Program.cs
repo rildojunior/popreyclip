@@ -71,7 +71,7 @@ static async Task<int> RunAsync(CommandOptions options)
     store.StartWatching();
     var config = store.Current;
     Log.Info($"Configuração: {store.FilePath}");
-    Log.Info($"Pasta dos clipes: {Path.Combine(config.ClipFolder, ClipPathBuilder.ClipsSubfolder)}\\<Jogo>");
+    Log.Info($"Pasta dos clipes: {Path.Combine(config.ClipFolder, ClipPathBuilder.RootSubfolder)}\\<Jogo>");
 
     using var session = new RecordingSession(store);
     using var quit = new CancellationTokenSource();

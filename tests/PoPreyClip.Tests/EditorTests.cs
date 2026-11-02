@@ -157,9 +157,13 @@ public class EditorTests
         try
         {
             var original = Path.Combine(directory.FullName, "Clip.mp4");
-            Assert.Equal(Path.Combine(directory.FullName, "Clip-editado.mp4"), ClipEditor.NewFileName(original));
-            File.WriteAllText(Path.Combine(directory.FullName, "Clip-editado.mp4"), "");
-            Assert.Equal(Path.Combine(directory.FullName, "Clip-editado-2.mp4"), ClipEditor.NewFileName(original));
+            var edits = Path.Combine(directory.FullName, "Edits");
+            Assert.Equal(Path.Combine(edits, "Clip_edit.mp4"), ClipEditor.NewFileName(original));
+            Directory.CreateDirectory(edits);
+            File.WriteAllText(Path.Combine(edits, "Clip_edit.mp4"), "");
+            Assert.Equal(Path.Combine(edits, "Clip_edit_2.mp4"), ClipEditor.NewFileName(original));
+            // Editing an edit keeps it in the same Edits folder.
+            Assert.Equal(Path.Combine(edits, "Clip_edit_edit.mp4"), ClipEditor.NewFileName(Path.Combine(edits, "Clip_edit.mp4")));
         }
         finally
         {

@@ -11,7 +11,7 @@ public class ClipPathBuilderTests
     {
         var path = ClipPathBuilder.BuildClipPath(@"F:\Capturas", "ARC Raiders", Timestamp, "PoPreyClip");
 
-        Assert.Equal(@"F:\Capturas\Clips\ARC Raiders\PoPreyClipARCRaiders20261011200729655.mp4", path);
+        Assert.Equal(@"F:\Capturas\PoPrey Game Capture\ARC Raiders\PoPreyClipARCRaiders20261011200729655.mp4", path);
     }
 
     [Theory]

@@ -17,40 +17,134 @@ public static class ClipLibrary
 
     private static readonly SemaphoreSlim ThumbnailSlots = new(2, 2);
 
-    public static string ClipsRoot(AppConfig config) => System.IO.Path.Combine(config.ClipFolder, ClipPathBuilder.ClipsSubfolder);
+    /// <summary>&lt;root&gt;\PoPrey Game Capture, with one folder per game inside.</summary>
+    public static string CaptureRoot(AppConfig config) => System.IO.Path.Combine(config.ClipFolder, ClipPathBuilder.RootSubfolder);
 
-    public static string ScreenshotsRoot(AppConfig config) => System.IO.Path.Combine(config.ClipFolder, ClipPathBuilder.ScreenshotsSubfolder);
-
-    /// <summary>Every .mp4 in &lt;root&gt;\Clips\&lt;Game&gt;\ and every .png/.jpg in &lt;root&gt;\Screenshots\&lt;Game&gt;\, newest first.</summary>
+    /// <summary>
+    /// Every .mp4 in &lt;Game&gt;\ and &lt;Game&gt;\Edits\ and every .png/.jpg in &lt;Game&gt;\Screenshots\, newest first.
+    /// </summary>
     public static List<ClipInfo> Scan(AppConfig config)
     {
         var result = new List<ClipInfo>();
-        AddFiles(result, ClipsRoot(config), ["*.mp4"], isScreenshot: false);
-        AddFiles(result, ScreenshotsRoot(config), ["*.png", "*.jpg"], isScreenshot: true);
-        return result.OrderByDescending(c => c.Created).ToList();
-    }
-
-    private static void AddFiles(List<ClipInfo> result, string root, string[] patterns, bool isScreenshot)
-    {
+        var root = CaptureRoot(config);
         if (!Directory.Exists(root))
         {
-            return;
+            return result;
         }
 
         foreach (var gameDirectory in Directory.EnumerateDirectories(root))
         {
             var game = System.IO.Path.GetFileName(gameDirectory);
-            foreach (var file in patterns.SelectMany(p => Directory.EnumerateFiles(gameDirectory, p)))
+            AddFiles(result, gameDirectory, game, ["*.mp4"], isScreenshot: false);
+            AddFiles(result, System.IO.Path.Combine(gameDirectory, ClipPathBuilder.EditsSubfolder), game, ["*.mp4"], isScreenshot: false);
+            AddFiles(result, System.IO.Path.Combine(gameDirectory, ClipPathBuilder.ScreenshotsSubfolder), game, ["*.png", "*.jpg"], isScreenshot: true);
+        }
+
+        return result.OrderByDescending(c => c.Created).ToList();
+    }
+
+    /// <summary>
+    /// Moves files from the layout used up to 2.1 (&lt;root&gt;\Clips\&lt;Game&gt;\ and &lt;root&gt;\Screenshots\&lt;Game&gt;\)
+    /// into the current one. Runs only while the PoPrey Game Capture folder does not exist yet, so in practice once,
+    /// on the first start after the update. Only .mp4 clips and .png/.jpg screenshots are moved; anything else stays.
+    /// "-editado" clips go to Edits with the "_edit" name. Old folders are removed once empty.
+    /// Returns how many files were moved.
+    /// </summary>
+    public static int MoveOldFolders(AppConfig config)
+    {
+        var moved = 0;
+        var root = CaptureRoot(config);
+        if (Directory.Exists(root))
+        {
+            return 0;
+        }
+
+        var oldClips = System.IO.Path.Combine(config.ClipFolder, "Clips");
+        var oldScreenshots = System.IO.Path.Combine(config.ClipFolder, ClipPathBuilder.ScreenshotsSubfolder);
+        moved += MoveOldFolder(oldClips, ["*.mp4"], (game, file) =>
+        {
+            var name = System.IO.Path.GetFileName(file);
+            var edited = System.Text.RegularExpressions.Regex.Match(name, @"^(.*)-editado(?:-(\d+))?(\.[^.]+)$");
+            return edited.Success
+                ? System.IO.Path.Combine(root, game, ClipPathBuilder.EditsSubfolder,
+                    $"{edited.Groups[1].Value}_edit{(edited.Groups[2].Success ? "_" + edited.Groups[2].Value : "")}{edited.Groups[3].Value}")
+                : System.IO.Path.Combine(root, game, name);
+        });
+        moved += MoveOldFolder(oldScreenshots, ["*.png", "*.jpg"], (game, file) =>
+            System.IO.Path.Combine(root, game, ClipPathBuilder.ScreenshotsSubfolder, System.IO.Path.GetFileName(file)));
+        if (moved > 0)
+        {
+            Log.Info($"{moved} arquivo(s) das pastas antigas movido(s) para {root}");
+        }
+
+        return moved;
+    }
+
+    private static int MoveOldFolder(string oldRoot, string[] patterns, Func<string, string, string> target)
+    {
+        if (!Directory.Exists(oldRoot))
+        {
+            return 0;
+        }
+
+        var moved = 0;
+        foreach (var gameDirectory in Directory.EnumerateDirectories(oldRoot))
+        {
+            var game = System.IO.Path.GetFileName(gameDirectory);
+            foreach (var file in patterns.SelectMany(p => Directory.EnumerateFiles(gameDirectory, p)).ToList())
             {
                 try
                 {
-                    var info = new FileInfo(file);
-                    result.Add(new ClipInfo(file, game, info.LastWriteTime, info.Length, isScreenshot));
+                    var destination = ClipPathBuilder.EnsureUnique(target(game, file));
+                    Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destination)!);
+                    File.Move(file, destination);
+                    moved++;
                 }
-                catch (IOException)
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    // File removed while scanning.
+                    Log.Warn($"Não foi possível mover {file}: {ex.Message}");
                 }
+            }
+
+            TryDeleteEmpty(gameDirectory);
+        }
+
+        TryDeleteEmpty(oldRoot);
+        return moved;
+    }
+
+    private static void TryDeleteEmpty(string directory)
+    {
+        try
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                Directory.Delete(directory);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Kept; the user can remove it.
+        }
+    }
+
+    private static void AddFiles(List<ClipInfo> result, string directory, string game, string[] patterns, bool isScreenshot)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return;
+        }
+
+        foreach (var file in patterns.SelectMany(p => Directory.EnumerateFiles(directory, p)))
+        {
+            try
+            {
+                var info = new FileInfo(file);
+                result.Add(new ClipInfo(file, game, info.LastWriteTime, info.Length, isScreenshot));
+            }
+            catch (IOException)
+            {
+                // File removed while scanning.
             }
         }
     }

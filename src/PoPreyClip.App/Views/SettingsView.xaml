@@ -265,7 +265,7 @@
                         <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentTextBrush}" VerticalAlignment="Center" />
                         <TextBlock Text="Capturas de tela" Style="{StaticResource SectionText}" Margin="12,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="As capturas ficam na pasta Screenshots, com uma subpasta para cada jogo, igual aos clipes."
+                    <TextBlock Text="As capturas ficam na pasta Screenshots, dentro da pasta de cada jogo, separadas dos clipes."
                                Style="{StaticResource HintText}" Margin="0,6,0,12" />
                     <Border Background="{StaticResource Surface2Brush}" CornerRadius="8" Padding="12,10">
                         <TextBlock Text="{Binding ScreenshotFolderExample}" FontFamily="Consolas" FontSize="12.5" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" />

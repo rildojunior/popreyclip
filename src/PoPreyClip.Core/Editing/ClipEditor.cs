@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using PoPreyClip.Audio;
+using PoPreyClip.Clips;
 using PoPreyClip.Config;
 using PoPreyClip.Recording;
 
@@ -39,16 +40,24 @@ public static class ClipEditor
     private static double EffectiveStart(ClipMedia media, ClipEditPlan plan) =>
         NeedsReencode(media, plan) ? plan.Start : media.KeyframeAtOrBefore(plan.Start);
 
-    /// <summary>"Clip-editado.mp4", or "Clip-editado-2.mp4" and so on when that name is taken.</summary>
+    /// <summary>
+    /// "Edits\Clip_edit.mp4" next to the clip, or "Edits\Clip_edit_2.mp4" and so on when that name is taken.
+    /// A clip that is already in Edits keeps its edits there.
+    /// </summary>
     public static string NewFileName(string original)
     {
         var directory = Path.GetDirectoryName(original) ?? "";
+        if (!string.Equals(Path.GetFileName(directory), ClipPathBuilder.EditsSubfolder, StringComparison.OrdinalIgnoreCase))
+        {
+            directory = Path.Combine(directory, ClipPathBuilder.EditsSubfolder);
+        }
+
         var name = Path.GetFileNameWithoutExtension(original);
         var extension = Path.GetExtension(original);
-        var candidate = Path.Combine(directory, $"{name}-editado{extension}");
+        var candidate = Path.Combine(directory, $"{name}_edit{extension}");
         for (var i = 2; File.Exists(candidate); i++)
         {
-            candidate = Path.Combine(directory, $"{name}-editado-{i}{extension}");
+            candidate = Path.Combine(directory, $"{name}_edit_{i}{extension}");
         }
 
         return candidate;
@@ -218,6 +227,7 @@ public static class ClipEditor
             }
             else
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Move(temp, target);
             }
 
