@@ -12,24 +12,34 @@ internal sealed class ClipExporter(Func<AppConfig> currentConfig, ReplayRecorder
 {
     private readonly SemaphoreSlim _busy = new(1, 1);
 
-    public async Task<string?> SaveAsync(string gameName)
+    /// <summary>
+    /// Saves the clip and returns its path. <paramref name="started"/> runs as soon as the clip can be made, before
+    /// the file is written, so the player hears and sees the notice right away (Medal does the same). Throws
+    /// <see cref="InvalidOperationException"/> with a readable message when the clip cannot be made (short lines,
+    /// because the on-screen notice shows each line on its own row).
+    /// </summary>
+    public async Task<string> SaveAsync(string gameName, Action? started = null)
     {
         if (!await _busy.WaitAsync(0))
         {
-            Log.Warn("Um clipe já está sendo salvo. Aguarde.");
-            return null;
+            throw new InvalidOperationException("O clipe anterior ainda está sendo salvo.\nTente de novo em instantes.");
         }
 
         var config = currentConfig();
         try
         {
+            if (!recorder.HasSegments)
+            {
+                throw new InvalidOperationException("A captura acabou de começar.\nTente de novo em alguns segundos.");
+            }
+
+            started?.Invoke();
             var finished = await recorder.WaitForCurrentSegmentAsync();
             var videoSegments = recorder.GetRecentSegments(ReplayRecorder.VideoSegmentPrefix, config.ClipSeconds, finished);
             var audioSegments = recorder.HasAudio ? recorder.GetRecentSegments(ReplayRecorder.AudioSegmentPrefix, config.ClipSeconds + config.Video.SegmentSeconds) : [];
             if (videoSegments.Count == 0 || (recorder.HasAudio && audioSegments.Count == 0))
             {
-                Log.Warn("O buffer ainda está vazio. Aguarde alguns segundos e tente de novo.");
-                return null;
+                throw new InvalidOperationException("O buffer ficou vazio antes de o clipe ser montado.");
             }
 
             var target = ClipPathBuilder.BuildClipPath(config.ClipFolder, gameName, DateTime.Now, config.FilePrefix);

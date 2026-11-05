@@ -11,7 +11,7 @@ using PoPreyClip.Native;
 namespace PoPreyClip.App;
 
 /// <summary>
-/// PoPreyClip's own notice ("clip saved", "ready to clip"), drawn in the top-right corner of the monitor the player is using.
+/// PoPreyClip's own notice ("clip saved", "ready to clip", "clip not saved" in red), drawn in the top-right corner of the monitor the player is using.
 /// Unlike Windows notifications it still shows while Windows' do-not-disturb hides them during games.
 /// It is a plain window on top (nothing is injected into the game), never takes focus, lets clicks through
 /// and is closed, not hidden, after a few seconds, so it uses no memory or CPU while it is off screen.
@@ -30,6 +30,7 @@ internal sealed class OverlayNotice : Window
     private const double ShadowDip = 14;
     public const string CheckGlyph = "";
     public const string GameGlyph = "";
+    public const string ErrorGlyph = "";
     private const int BarFramesPerSecond = 20;
     private const double CardRadius = 12;
     private const double CardBorder = 2;
@@ -45,7 +46,7 @@ internal sealed class OverlayNotice : Window
     private readonly DispatcherTimer _timer;
     private readonly ScaleTransform _timeLeft = new(1, 1);
 
-    private OverlayNotice(string title, string detail, string glyph, TimeSpan visibleTime, IntPtr targetWindow)
+    private OverlayNotice(string title, string detail, string glyph, TimeSpan visibleTime, bool error, IntPtr targetWindow)
     {
         _targetWindow = targetWindow;
         WindowStyle = WindowStyle.None;
@@ -63,7 +64,7 @@ internal sealed class OverlayNotice : Window
         Left = -32000;
         Top = -32000;
         Opacity = 0;
-        Content = BuildContent(title, detail, glyph, _timeLeft);
+        Content = BuildContent(title, detail, glyph, error, _timeLeft);
 
         _timer = new DispatcherTimer { Interval = visibleTime };
         _timer.Tick += (_, _) => FadeOutAndClose();
@@ -72,7 +73,7 @@ internal sealed class OverlayNotice : Window
         {
             PlaceOnTargetMonitor();
             BeginAnimation(OpacityProperty, new DoubleAnimation(1, FadeTime));
-            // The green bar empties while the notice is on screen. Each frame redraws the whole see-through window
+            // The coloured bar empties while the notice is on screen. Each frame redraws the whole see-through window
             // in software, so the bar moves at 20 frames per second instead of 60: it still looks smooth and
             // costs about half the CPU.
             var drain = new DoubleAnimation(1, 0, visibleTime);
@@ -92,25 +93,26 @@ internal sealed class OverlayNotice : Window
 
     /// <summary>
     /// Shows a notice on the monitor of the current foreground window, replacing the previous one. Each line of
-    /// <paramref name="detail"/> is shown on its own row. UI thread only.
+    /// <paramref name="detail"/> is shown on its own row. <paramref name="error"/> paints it red instead of green.
+    /// UI thread only.
     /// </summary>
-    public static void Notify(string title, string detail, string glyph = CheckGlyph, TimeSpan? visibleTime = null)
+    public static void Notify(string title, string detail, string glyph = CheckGlyph, TimeSpan? visibleTime = null, bool error = false)
     {
         _current?.Close();
-        _current = new OverlayNotice(title, detail, glyph, visibleTime ?? DefaultVisibleTime, Win32.GetForegroundWindow());
+        _current = new OverlayNotice(title, detail, glyph, visibleTime ?? DefaultVisibleTime, error, Win32.GetForegroundWindow());
         _current.Show();
     }
 
-    private static UIElement BuildContent(string title, string detail, string glyph, ScaleTransform timeLeft)
+    private static UIElement BuildContent(string title, string detail, string glyph, bool error, ScaleTransform timeLeft)
     {
         var app = Application.Current;
-        var success = (Brush)app.FindResource("SuccessBrush");
+        var accent = (Brush)app.FindResource(error ? "DangerBrush" : "SuccessBrush");
         var icon = new Border
         {
             Width = 42,
             Height = 42,
             CornerRadius = new CornerRadius(21),
-            Background = success,
+            Background = accent,
             VerticalAlignment = VerticalAlignment.Center,
             Child = new TextBlock
             {
@@ -149,7 +151,7 @@ internal sealed class OverlayNotice : Window
         var bar = new Border
         {
             Height = 4,
-            Background = success,
+            Background = accent,
             RenderTransform = timeLeft,
             RenderTransformOrigin = new Point(0, 0.5),
         };
@@ -168,7 +170,7 @@ internal sealed class OverlayNotice : Window
             MaxWidth = 380,
             CornerRadius = new CornerRadius(CardRadius),
             Background = CardBrush,
-            BorderBrush = success,
+            BorderBrush = accent,
             BorderThickness = new Thickness(CardBorder),
             Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 6, Direction = 270, Opacity = 0.55, Color = Colors.Black },
             Child = layout,

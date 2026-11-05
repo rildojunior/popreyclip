@@ -44,7 +44,7 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
 - 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo, mesmo com o jogo na frente. Entende qualquer palavra, então o nome do assistente e os comandos podem ser gírias ou nomes inventados. É reconhecido no seu PC, sem internet, e vem desligado.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift, Ctrl ou Alt segurados, e podem ser trocados nas configurações.
-- 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. Os dois podem ser trocados ou desligados.
+- 🔔 **Aviso na tela e som:** ao salvar um clipe ou uma captura, um aviso verde aparece no canto superior direito por cima do jogo, sem tirar o foco, junto com um som curto. No clipe, os dois vêm no instante em que você aperta a tecla, enquanto o arquivo termina de ser salvo em segundo plano. Se algo der errado ao salvar, um aviso vermelho **Clipe não salvo** explica o motivo. Aviso e som podem ser trocados ou desligados.
 - 🖥️ **Fica na bandeja:** ao fechar a janela, ele continua gravando ao lado do relógio.
 - 🚀 **Inicia com o Windows (opcional):** abre sozinho ao ligar o PC, já escondido na bandeja.
 - 🔄 **Atualização automática:** avisa quando sai uma versão nova e se atualiza com um clique.

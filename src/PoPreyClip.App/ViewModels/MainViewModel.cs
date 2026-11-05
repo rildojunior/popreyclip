@@ -149,7 +149,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         });
         _session.GameChanged += game => _dispatcher.InvokeAsync(() => UpdateGame(game));
         _session.GameReady += game => _dispatcher.InvokeAsync(() => GameReady?.Invoke(game));
+        _session.ClipStarted += game => _dispatcher.InvokeAsync(() => OnClipStarted(game));
         _session.ClipSaved += info => _dispatcher.InvokeAsync(() => OnClipSaved(info));
+        _session.ClipFailed += info => _dispatcher.InvokeAsync(() => ClipFailed?.Invoke(info));
         _session.ScreenshotSaved += info => _dispatcher.InvokeAsync(() => OnScreenshotSaved(info));
         _session.Failed += message => _dispatcher.InvokeAsync(() => ErrorMessage = message);
         _store.Changed += _ => _dispatcher.InvokeAsync(() =>
@@ -234,8 +236,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ICommand CloseToastCommand { get; }
 
-    /// <summary>Raised when a clip is saved, so the window can show a tray notification while hidden.</summary>
+    /// <summary>
+    /// Raised as soon as a clip request is accepted, before the file exists, so the notice shows right away while
+    /// the window is hidden. The game name comes along.
+    /// </summary>
+    public event Action<string>? ClipStarted;
+
+    /// <summary>Raised when the clip file is ready.</summary>
     public event Action<ClipSavedInfo>? ClipSaved;
+
+    /// <summary>Raised when an accepted clip request could not be saved.</summary>
+    public event Action<ClipFailedInfo>? ClipFailed;
 
     /// <summary>Raised when a screenshot is saved, for the tray notification.</summary>
     public event Action<ClipSavedInfo>? ScreenshotSaved;
@@ -531,13 +542,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return _hotkeys.Set(name, text, action);
     }
 
-    private void OnClipSaved(ClipSavedInfo info)
+    private void OnClipStarted(string game)
     {
         if (_store.Current.PlaySoundOnClip)
         {
             _sounds.Play(_store.Current);
         }
 
+        ClipStarted?.Invoke(game);
+    }
+
+    private void OnClipSaved(ClipSavedInfo info)
+    {
         _toastPath = info.Path;
         ToastMessage = $"Clipe de {info.Game} salvo";
         _toastTimer.Stop();

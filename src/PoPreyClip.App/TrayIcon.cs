@@ -14,6 +14,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly MainViewModel _viewModel;
     private readonly Forms.ToolStripMenuItem _toggleItem;
     private static readonly TimeSpan GameReadyTime = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ClipFailedTime = TimeSpan.FromSeconds(6);
     private bool _hintShown;
 
     /// <summary>New version found during a game; announced when the game closes.</summary>
@@ -78,7 +79,9 @@ internal sealed class TrayIcon : IDisposable
             }
         };
         viewModel.ScreenshotSaved += info => AnnounceSaved("Captura de tela salva", info.Game);
-        viewModel.ClipSaved += info => AnnounceSaved("Clipe salvo", $"{info.Game} · {viewModel.Settings.ClipSecondsText}");
+        // Like Medal, "Clipe salvo" shows when the key is accepted; the file is ready a second or two later.
+        viewModel.ClipStarted += game => AnnounceSaved("Clipe salvo", $"{game} · {viewModel.Settings.ClipSecondsText}");
+        viewModel.ClipFailed += AnnounceClipFailed;
         viewModel.GameReady += AnnounceGameReady;
         viewModel.Settings.NoticeTestRequested += () =>
             Announce(viewModel.Settings.SavedNotice.Value, "Clipe salvo", "Assim o aviso aparece durante o jogo");
@@ -133,15 +136,31 @@ internal sealed class TrayIcon : IDisposable
         Announce(settings.SavedNotice.Value, "Pronto para clipar", string.Join("\n", lines), OverlayNotice.GameGlyph, GameReadyTime);
     }
 
-    private void Announce(string style, string title, string detail, string glyph = OverlayNotice.CheckGlyph, TimeSpan? visibleTime = null)
+    /// <summary>
+    /// The "Clipe salvo" notice has already shown, so a failure must be said too: in the notice style chosen while
+    /// the window is hidden, or in the window's error strip when it is in front.
+    /// </summary>
+    private void AnnounceClipFailed(PoPreyClip.Session.ClipFailedInfo info)
+    {
+        if (_window.IsActive)
+        {
+            _viewModel.ErrorMessage = $"O clipe de {info.Game} não foi salvo. {info.Reason.Replace('\n', ' ')}";
+            return;
+        }
+
+        Announce(_viewModel.Settings.SavedNotice.Value, "Clipe não salvo", $"{info.Game}\n{info.Reason}",
+            OverlayNotice.ErrorGlyph, ClipFailedTime, error: true);
+    }
+
+    private void Announce(string style, string title, string detail, string glyph = OverlayNotice.CheckGlyph, TimeSpan? visibleTime = null, bool error = false)
     {
         switch (style)
         {
             case AppConfig.NoticeOverlay:
-                OverlayNotice.Notify(title, detail, glyph, visibleTime);
+                OverlayNotice.Notify(title, detail, glyph, visibleTime, error);
                 break;
             case AppConfig.NoticeWindows:
-                _icon.ShowBalloonTip(3000, title, detail, Forms.ToolTipIcon.None);
+                _icon.ShowBalloonTip(3000, title, detail, error ? Forms.ToolTipIcon.Error : Forms.ToolTipIcon.None);
                 break;
         }
     }

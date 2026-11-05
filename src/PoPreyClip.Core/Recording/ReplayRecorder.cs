@@ -353,6 +353,10 @@ internal sealed class ReplayRecorder : IDisposable
         return null;
     }
 
+    /// <summary>True when the buffer already holds video (and audio, when it is recorded) to make a clip from.</summary>
+    public bool HasSegments =>
+        GetRecentSegments(VideoSegmentPrefix, 1).Count > 0 && (!HasAudio || GetRecentSegments(AudioSegmentPrefix, 1).Count > 0);
+
     private string? NewestSegment(string prefix) => Segments(prefix).LastOrDefault();
 
     private List<string> Segments(string prefix) =>

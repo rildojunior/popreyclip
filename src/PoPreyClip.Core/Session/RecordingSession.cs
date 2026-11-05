@@ -9,6 +9,8 @@ namespace PoPreyClip.Session;
 
 public sealed record ClipSavedInfo(string Path, string Game);
 
+public sealed record ClipFailedInfo(string Game, string Reason);
+
 /// <summary>
 /// Public entry point used by the desktop app and the command-line tool. Starts and stops recording,
 /// saves clips, reports audio levels, and restarts recording by itself when a setting that defines the
@@ -85,7 +87,17 @@ public sealed class RecordingSession : IDisposable
 
     public event Action<DetectedGame?>? GameChanged;
 
+    /// <summary>
+    /// Raised as soon as a clip request is accepted, before the file is written (about 1 to 3 s earlier than
+    /// <see cref="ClipSaved"/>). The sound and the notice use it, like Medal, so the player knows the key worked.
+    /// </summary>
+    public event Action<string>? ClipStarted;
+
+    /// <summary>Raised when the file is ready.</summary>
     public event Action<ClipSavedInfo>? ClipSaved;
+
+    /// <summary>Raised when a clip request could not become a file, with a reason the player can read.</summary>
+    public event Action<ClipFailedInfo>? ClipFailed;
 
     /// <summary>Raised after a screenshot is saved. The path and game reuse <see cref="ClipSavedInfo"/>.</summary>
     public event Action<ClipSavedInfo>? ScreenshotSaved;
@@ -370,20 +382,24 @@ public sealed class RecordingSession : IDisposable
         Interlocked.Exchange(ref _lastClipRequestTick, now);
         var game = _detector.ClipGameName;
         Log.Info($"Salvando clipe de {_store.Current.ClipSeconds}s ({game})...");
+        var started = false;
         try
         {
-            var path = await pipeline.Exporter.SaveAsync(game);
-            if (path is not null)
+            var path = await pipeline.Exporter.SaveAsync(game, () =>
             {
-                Log.Info($"Clipe salvo: {path}");
-                ClipSaved?.Invoke(new ClipSavedInfo(path, game));
-            }
-
+                started = true;
+                ClipStarted?.Invoke(game);
+            });
+            Log.Info($"Clipe salvo: {path}");
+            ClipSaved?.Invoke(new ClipSavedInfo(path, game));
             return path;
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            Log.Error(ex.Message);
+            Log.Error($"Clipe não salvo: {ex.Message.Replace('\n', ' ')}");
+            // Before the start the message is already readable; after it, ffmpeg's details only make sense in the log.
+            var reason = started ? "Algo deu errado ao montar o arquivo.\nOs detalhes estão no log." : ex.Message;
+            ClipFailed?.Invoke(new ClipFailedInfo(game, reason));
             return null;
         }
     }
