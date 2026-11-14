@@ -18,7 +18,7 @@ public sealed class VoiceWordItem(string text, Action<string> remove)
     public ICommand RemoveCommand { get; } = new RelayCommand(() => remove(text));
 }
 
-/// <summary>"Comando de voz" card: say the assistant's name and a command to save a clip, like Medal's voice clipping.</summary>
+/// <summary>"Comando de voz" card: say the assistant's name and a command to save a clip.</summary>
 public sealed class VoiceCommandsViewModel : ObservableObject
 {
     private static readonly TimeSpan TestDuration = TimeSpan.FromSeconds(10);

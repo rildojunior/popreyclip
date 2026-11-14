@@ -16,7 +16,7 @@ internal abstract record CaptureTarget(string Description)
 /// <summary>
 /// Keeps one configured audio source alive. On every tick it resolves the current target
 /// (game PID, app root PID, or microphone) and restarts capture when the target changes or fails,
-/// similar to how the Medal recorder regenerates audio capture when a relevant process starts or exits.
+/// so capture follows a relevant process when it starts or exits.
 /// </summary>
 /// <param name="quiet">Logs only failures; used by the level preview, which starts and stops with the Audio page.</param>
 internal sealed class AudioSourceRunner(AudioSourceConfig source, GameDetector games, bool quiet = false) : IDisposable

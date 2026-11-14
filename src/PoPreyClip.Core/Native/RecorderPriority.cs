@@ -6,7 +6,7 @@ namespace PoPreyClip.Native;
 /// <summary>
 /// Keeps the recorder fed while a game uses 100% of the GPU. Without this, Windows schedules the game's
 /// GPU work first and the capture gets a frame only now and then (clips look frozen at ~1 fps).
-/// Same approach as OBS and Medal: raise the recorder's GPU scheduling priority class, plus CPU priority.
+/// Same approach as OBS: raise the recorder's GPU scheduling priority class, plus CPU priority.
 /// </summary>
 internal static class RecorderPriority
 {

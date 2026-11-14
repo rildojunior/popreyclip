@@ -79,7 +79,7 @@ internal sealed class TrayIcon : IDisposable
             }
         };
         viewModel.ScreenshotSaved += info => AnnounceSaved("Captura de tela salva", info.Game);
-        // Like Medal, "Clipe salvo" shows when the key is accepted; the file is ready a second or two later.
+        // "Clipe salvo" shows when the key is accepted; the file is ready a second or two later.
         viewModel.ClipStarted += game => AnnounceSaved("Clipe salvo", $"{game} · {viewModel.Settings.ClipSecondsText}");
         viewModel.ClipFailed += AnnounceClipFailed;
         viewModel.GameReady += AnnounceGameReady;
@@ -116,7 +116,7 @@ internal sealed class TrayIcon : IDisposable
     }
 
     /// <summary>
-    /// Like Medal's "Ready to clip": when a game is detected, says the clip capture is on and which keys to use.
+    /// When a game is detected, says the clip capture is on and which keys to use.
     /// Follows the same notice style as the saved files, and is skipped while the PoPreyClip window is in front.
     /// </summary>
     private void AnnounceGameReady(DetectedGame game)

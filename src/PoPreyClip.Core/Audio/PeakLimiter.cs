@@ -3,7 +3,7 @@ namespace PoPreyClip.Audio;
 /// <summary>
 /// Simple stereo peak limiter applied to every output track, so boosted sources (a quiet microphone
 /// raised by +15 dB, for example) and the sum of several sources never clip. Similar in purpose to the
-/// FFmpeg "alimiter" stage the Medal recorder places before its output.
+/// FFmpeg "alimiter" filter.
 /// Attack is instant; the gain recovers smoothly over about 150 ms.
 /// </summary>
 public sealed class PeakLimiter

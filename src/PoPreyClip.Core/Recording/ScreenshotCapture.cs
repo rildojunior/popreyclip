@@ -6,13 +6,13 @@ using PoPreyClip.Config;
 namespace PoPreyClip.Recording;
 
 /// <summary>
-/// Saves a lossless PNG of the recorded monitor to &lt;root&gt;\PoPrey Game Capture\&lt;Game&gt;\Screenshots\, like Medal's
-/// ScreenshotExporter. The frame comes straight from Desktop Duplication (the same source the recording
+/// Saves a lossless PNG of the recorded monitor to &lt;root&gt;\PoPrey Game Capture\&lt;Game&gt;\Screenshots\.
+/// The frame comes straight from Desktop Duplication (the same source the recording
 /// uses), so it is uncompressed and works whether or not recording is running.
 /// </summary>
 internal sealed class ScreenshotCapture
 {
-    /// <summary>Minimum time between two screenshots (Medal also ignores presses "on cooldown").</summary>
+    /// <summary>Minimum time between two screenshots (presses "on cooldown" are ignored).</summary>
     public static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(1);
 
     private readonly SemaphoreSlim _busy = new(1, 1);

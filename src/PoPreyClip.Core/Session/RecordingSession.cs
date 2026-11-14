@@ -18,7 +18,7 @@ public sealed record ClipFailedInfo(string Game, string Reason);
 /// </summary>
 public sealed class RecordingSession : IDisposable
 {
-    /// <summary>A second clip request this soon after the previous one is ignored, like Medal's clip cooldown.</summary>
+    /// <summary>A second clip request this soon after the previous one is ignored (clip cooldown).</summary>
     public static readonly TimeSpan ClipCooldown = TimeSpan.FromSeconds(2);
 
     private readonly ConfigStore _store;
@@ -89,7 +89,7 @@ public sealed class RecordingSession : IDisposable
 
     /// <summary>
     /// Raised as soon as a clip request is accepted, before the file is written (about 1 to 3 s earlier than
-    /// <see cref="ClipSaved"/>). The sound and the notice use it, like Medal, so the player knows the key worked.
+    /// <see cref="ClipSaved"/>). The sound and the notice use it, so the player knows the key worked.
     /// </summary>
     public event Action<string>? ClipStarted;
 

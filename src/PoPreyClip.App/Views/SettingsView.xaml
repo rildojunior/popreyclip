@@ -17,7 +17,7 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
-        <!-- Resolution / bitrate item: heavy choices in yellow or red, like Medal -->
+        <!-- Resolution / bitrate item: heavy choices in yellow or red -->
         <DataTemplate x:Key="VideoChoiceTemplate">
             <TextBlock x:Name="Text" Text="{Binding Label}" />
             <DataTemplate.Triggers>

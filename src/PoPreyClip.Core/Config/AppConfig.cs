@@ -85,7 +85,7 @@ public sealed class AppConfig
     /// </summary>
     public string SavedNotice { get; set; } = NoticeOverlay;
 
-    /// <summary>Desktop app: also copy each screenshot to the clipboard, like Medal.</summary>
+    /// <summary>Desktop app: also copy each screenshot to the clipboard.</summary>
     public bool CopyScreenshotToClipboard { get; set; } = true;
 
     /// <summary>File name prefix. Final name: &lt;prefix&gt;&lt;GameWithoutSpaces&gt;&lt;yyyyMMddHHmmssfff&gt;.mp4</summary>
@@ -202,7 +202,7 @@ public sealed class VideoConfig
     /// </summary>
     public string Capture { get; set; } = CaptureGameWindow;
 
-    /// <summary>Quality preset like Medal's: <see cref="VideoPresets.Low"/>, Standard, High or Custom.</summary>
+    /// <summary>Quality preset: <see cref="VideoPresets.Low"/>, Standard, High or Custom.</summary>
     public string Preset { get; set; } = VideoPresets.High;
 
     /// <summary>Clip height in pixels (2160, 1440, 1080, 720, 480 or 360). A smaller game or monitor is never enlarged.</summary>
@@ -286,7 +286,7 @@ public sealed class VoiceConfig
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// Words said before every command, like Medal's "Medal clip that". A command said alone in a conversation does
+    /// Words said before every command (the assistant's name). A command said alone in a conversation does
     /// not save a clip.
     /// </summary>
     public List<string> AssistantNames { get; set; } = [DefaultAssistantName];

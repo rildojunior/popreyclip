@@ -1,9 +1,9 @@
 namespace PoPreyClip.Config;
 
 /// <summary>
-/// Ready-made recording settings for people who do not want to pick a resolution and bitrate, copied from Medal's
-/// presets (Low 360p 24 FPS, Standard 720p 60 FPS, High 1080p 60 FPS). H.265 and AV1 need less bitrate for the same
-/// picture, so those encoders get a lower bitrate, as Medal does.
+/// Ready-made recording settings for people who do not want to pick a resolution and bitrate
+/// (Low 360p 24 FPS, Standard 720p 60 FPS, High 1080p 60 FPS). H.265 and AV1 need less bitrate for the same
+/// picture, so those encoders get a lower bitrate.
 /// </summary>
 public static class VideoPresets
 {

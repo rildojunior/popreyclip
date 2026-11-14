@@ -92,7 +92,7 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
 /// <summary>
 /// System-wide hotkey on a dedicated message-loop thread. It first asks Windows to reserve the key
 /// (RegisterHotKey). If another program already reserved it (error 1409, common for F12), it falls back to
-/// a shared low-level keyboard hook, which is how Medal reads its hotkeys: the key still reaches the other
+/// a shared low-level keyboard hook: the key still reaches the other
 /// program and PoPreyClip reacts too.
 /// The hook is also installed alongside RegisterHotKey, because Windows only fires a reserved hotkey when
 /// the held modifiers match exactly: pressing F9 while running with Shift (or holding Alt) would be ignored. The hook

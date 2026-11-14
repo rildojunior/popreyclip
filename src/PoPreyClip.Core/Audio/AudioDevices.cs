@@ -84,7 +84,7 @@ internal static class AudioDevices
 
     /// <summary>
     /// Captures only the audio rendered by one process and its children, using the Windows
-    /// process loopback virtual device (the same API Medal's native recorder imports).
+    /// process loopback virtual device.
     /// </summary>
     public static WasapiCapture CreateProcessCapture(int processId, PcmFifo fifo, string description)
     {

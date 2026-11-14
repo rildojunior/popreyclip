@@ -24,7 +24,7 @@ public class VideoQualityTests
     [InlineData(VideoPresets.High, "auto", 1080, 60, 15)]
     [InlineData(VideoPresets.Standard, "hevc_nvenc", 720, 60, 7)]
     [InlineData(VideoPresets.High, "av1_nvenc", 1080, 60, 10)]
-    public void Presets_match_medal(string preset, string encoder, int resolution, int fps, int bitrate)
+    public void Presets_have_expected_values(string preset, string encoder, int resolution, int fps, int bitrate)
     {
         var config = new AppConfig();
         config.Video.Encoder = encoder;

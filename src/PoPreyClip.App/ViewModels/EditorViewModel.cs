@@ -284,7 +284,7 @@ public sealed class EditorViewModel : ObservableObject, IDisposable
         _ => title,
     };
 
-    /// <summary>Ten frames spread over the clip, side by side in one image (like Medal's film strip).</summary>
+    /// <summary>Ten frames spread over the clip, side by side in one image (a film strip).</summary>
     private static async Task<BitmapSource?> LoadThumbnailsAsync(AppConfig config, ClipMedia media)
     {
         const int count = 10;

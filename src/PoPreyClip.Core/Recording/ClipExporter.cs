@@ -14,7 +14,7 @@ internal sealed class ClipExporter(Func<AppConfig> currentConfig, ReplayRecorder
 
     /// <summary>
     /// Saves the clip and returns its path. <paramref name="started"/> runs as soon as the clip can be made, before
-    /// the file is written, so the player hears and sees the notice right away (Medal does the same). Throws
+    /// the file is written, so the player hears and sees the notice right away. Throws
     /// <see cref="InvalidOperationException"/> with a readable message when the clip cannot be made (short lines,
     /// because the on-screen notice shows each line on its own row).
     /// </summary>

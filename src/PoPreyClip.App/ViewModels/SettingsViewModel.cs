@@ -11,7 +11,7 @@ public sealed record Option<T>(T Value, string Label)
     public override string ToString() => Label;
 }
 
-/// <summary>A resolution or bitrate in the list. <see cref="Tone"/> colors heavy choices, like Medal.</summary>
+/// <summary>A resolution or bitrate in the list. <see cref="Tone"/> colors heavy choices.</summary>
 public sealed record VideoChoice(int Value, string Label, string Tone = "")
 {
     public const string Warning = "warning";
@@ -332,7 +332,7 @@ public sealed class SettingsViewModel : ObservableObject
     public IReadOnlyList<Option<int>> FpsOptions { get; } =
         [new(24, "24 FPS"), new(30, "30 FPS"), new(60, "60 FPS"), new(120, "120 FPS"), new(144, "144 FPS")];
 
-    /// <summary>Clip sizes, like Medal's list. 2K and 4K are marked red: they weigh a lot on the PC and the files.</summary>
+    /// <summary>Clip sizes. 2K and 4K are marked red: they weigh a lot on the PC and the files.</summary>
     public IReadOnlyList<VideoChoice> ResolutionOptions { get; } =
     [
         new(2160, "UHD 4K (2160p)", VideoChoice.Danger),
@@ -343,7 +343,7 @@ public sealed class SettingsViewModel : ObservableObject
         new(360, "Baixo (360p)"),
     ];
 
-    /// <summary>Bitrates, like Medal's list: from 30M up in yellow, from 70M up in red (very big files).</summary>
+    /// <summary>Bitrates: from 30M up in yellow, from 70M up in red (very big files).</summary>
     public IReadOnlyList<VideoChoice> BitrateOptions { get; } = VideoPresets.Bitrates
         .Select(b => new VideoChoice(b, $"{b}M", b >= 70 ? VideoChoice.Danger : b >= 30 ? VideoChoice.Warning : ""))
         .ToList();
@@ -477,7 +477,7 @@ public sealed class SettingsViewModel : ObservableObject
         {
             if (value is not null)
             {
-                // H.265 and AV1 need less bitrate: a preset follows the encoder, like Medal.
+                // H.265 and AV1 need less bitrate: a preset follows the encoder.
                 _store.Update(c =>
                 {
                     c.Video.Encoder = value.Value;
