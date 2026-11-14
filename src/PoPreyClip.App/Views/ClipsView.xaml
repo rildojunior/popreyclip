@@ -1,6 +1,19 @@
 <UserControl x:Class="PoPreyClip.App.Views.ClipsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!-- Share menu: opened by the card's share button and by right-clicking the card. Nothing here makes a new file. -->
+        <ContextMenu x:Key="ClipMenu" x:Shared="False">
+            <MenuItem Header="Copiar" InputGestureText="Ctrl+C" Command="{Binding CopyCommand}" Icon="&#xE8C8;"
+                      ToolTip="Copia o arquivo para colar com Ctrl+V em qualquer programa" />
+            <MenuItem Header="Enviar para o Discord" Command="{Binding SendToDiscordCommand}" Icon="&#xE8BD;" />
+            <MenuItem Header="Enviar para o WhatsApp" Command="{Binding SendToWhatsAppCommand}" Icon="&#xE717;" />
+            <MenuItem Header="Mais opções…" Command="{Binding ShareCommand}" Icon="&#xE72D;"
+                      ToolTip="Janela Compartilhar do Windows: e-mail, Compartilhamento por Proximidade e outros apps" />
+            <Separator />
+            <MenuItem Header="Mostrar na pasta" Command="{Binding RevealCommand}" Icon="&#xE838;" />
+        </ContextMenu>
+    </UserControl.Resources>
     <Grid Margin="36,4,20,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -76,97 +89,118 @@
         </ListBox>
         </DockPanel>
 
-        <!-- Grid of clips -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="ClipGrid" ItemsSource="{Binding Clips}" Margin="0,0,0,28">
-                <!-- As many columns as fit with cards at least 280 px wide (+16 px gap); the cards stretch to fill the row. -->
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid VerticalAlignment="Top"
-                                     Columns="{Binding ActualWidth, ElementName=ClipGrid, Converter={StaticResource ColumnsForWidth}, ConverterParameter=296}" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border x:Name="Card" Margin="0,0,16,16" Background="{StaticResource SurfaceBrush}"
-                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12">
-                            <StackPanel>
-                                <Grid Height="{Binding ActualWidth, ElementName=Card, Converter={StaticResource Scale}, ConverterParameter=0.5625}">
-                                    <Border CornerRadius="12,12,0,0" Background="{StaticResource Surface2Brush}">
-                                        <TextBlock Text="&#xE714;" Style="{StaticResource IconText}" Foreground="{StaticResource TextFaintBrush}" FontSize="28" />
-                                    </Border>
-                                    <Border CornerRadius="12,12,0,0">
-                                        <Border.Background>
-                                            <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                        </Border.Background>
-                                    </Border>
-                                    <Button x:Name="PlayOverlay" Command="{Binding PlayCommand}" Cursor="Hand" Opacity="0" ToolTip="{Binding OpenText}">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border CornerRadius="12,12,0,0" Background="#66000000">
-                                                    <Border Width="52" Height="52" CornerRadius="26" Background="#E6FFFFFF">
-                                                        <TextBlock Text="{Binding OpenIcon}" Style="{StaticResource IconText}" Foreground="#111" FontSize="20" Margin="3,0,0,0" />
-                                                    </Border>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                    <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="7,2" CornerRadius="4" Background="#B0000000"
-                                            IsHitTestVisible="False" Visibility="{Binding DurationText, Converter={StaticResource NotEmptyToVisibility}}">
-                                        <TextBlock Text="{Binding DurationText}" FontSize="11.5" Foreground="White" FontWeight="SemiBold" />
-                                    </Border>
-                                    <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="7,2" CornerRadius="4" Background="#B0000000"
-                                            IsHitTestVisible="False" Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="White" VerticalAlignment="Center" />
-                                            <TextBlock Text="Captura" FontSize="11.5" Foreground="White" FontWeight="SemiBold" Margin="5,0,0,0" />
+        <!-- Grid of clips: a virtualized list of rows, so only the rows on screen get cards (and load thumbnails). -->
+        <ItemsControl x:Name="ClipGrid" Grid.Row="2" ItemsSource="{Binding Rows}"
+                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="1,1" VirtualizingPanel.CacheLengthUnit="Page"
+                      ScrollViewer.CanContentScroll="True" ScrollViewer.ScrollChanged="OnClipGridScrollChanged">
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer x:Name="ClipScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="True">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!-- As many columns as fit with cards at least 280 px wide (+16 px gap); the cards stretch to fill the row. -->
+                    <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="{Binding Columns}" VerticalAlignment="Top" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Card" Margin="0,0,16,16" Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12"
+                                        ContextMenu="{StaticResource ClipMenu}"
+                                        PreviewMouseLeftButtonDown="OnCardMouseDown" PreviewMouseMove="OnCardMouseMove">
+                                    <StackPanel>
+                                        <Grid Height="{Binding ActualWidth, ElementName=Card, Converter={StaticResource Scale}, ConverterParameter=0.5625}">
+                                            <Border CornerRadius="12,12,0,0" Background="{StaticResource Surface2Brush}">
+                                                <TextBlock Text="&#xE714;" Style="{StaticResource IconText}" Foreground="{StaticResource TextFaintBrush}" FontSize="28" />
+                                            </Border>
+                                            <Border CornerRadius="12,12,0,0">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                </Border.Background>
+                                            </Border>
+                                            <Button x:Name="PlayOverlay" Command="{Binding PlayCommand}" Cursor="Hand" Opacity="0" ToolTip="{Binding OpenText}">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border CornerRadius="12,12,0,0" Background="#66000000">
+                                                            <Border Width="52" Height="52" CornerRadius="26" Background="#E6FFFFFF">
+                                                                <TextBlock Text="{Binding OpenIcon}" Style="{StaticResource IconText}" Foreground="#111" FontSize="20" Margin="3,0,0,0" />
+                                                            </Border>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="7,2" CornerRadius="4" Background="#B0000000"
+                                                    IsHitTestVisible="False" Visibility="{Binding DurationText, Converter={StaticResource NotEmptyToVisibility}}">
+                                                <TextBlock Text="{Binding DurationText}" FontSize="11.5" Foreground="White" FontWeight="SemiBold" />
+                                            </Border>
+                                            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="7,2" CornerRadius="4" Background="#B0000000"
+                                                    IsHitTestVisible="False" Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE722;" FontFamily="{StaticResource IconFont}" FontSize="11" Foreground="White" VerticalAlignment="Center" />
+                                                    <TextBlock Text="Captura" FontSize="11.5" Foreground="White" FontWeight="SemiBold" Margin="5,0,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        <StackPanel Margin="14,12,14,14">
+                                            <TextBlock Text="{Binding Game}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding FileName}" FontSize="13" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,3,0,12">
+                                                <TextBlock Text="{Binding DateText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                                <TextBlock Text=" · " FontSize="12" Foreground="{StaticResource TextFaintBrush}" />
+                                                <TextBlock Text="{Binding SizeText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                            </StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button Command="{Binding PlayCommand}" Style="{StaticResource PrimaryButton}" Padding="8,7">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding OpenIcon}" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding OpenText}" Margin="7,0,0,0" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Grid.Column="1" Command="{Binding EditCommand}" Padding="10,7" Margin="6,0,0,0" ToolTip="Cortar, recortar a imagem e ajustar o áudio"
+                                                        Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
+                                                        <TextBlock Text="Editar" Margin="7,0,0,0" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE72D;" Width="32" Margin="4,0,0,0" Click="OnShareClick"
+                                                        ContextMenu="{StaticResource ClipMenu}" ToolTip="Compartilhar, copiar ou mostrar na pasta" />
+                                                <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE74D;" Width="32" Margin="2,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
+                                            </Grid>
                                         </StackPanel>
-                                    </Border>
-                                </Grid>
-                                <StackPanel Margin="14,12,14,14">
-                                    <TextBlock Text="{Binding Game}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentTextBrush}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding FileName}" FontSize="13" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
-                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,12">
-                                        <TextBlock Text="{Binding DateText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                        <TextBlock Text=" · " FontSize="12" Foreground="{StaticResource TextFaintBrush}" />
-                                        <TextBlock Text="{Binding SizeText}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
                                     </StackPanel>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <Button Command="{Binding PlayCommand}" Style="{StaticResource PrimaryButton}" Padding="8,7">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding OpenIcon}" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding OpenText}" Margin="7,0,0,0" />
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Grid.Column="1" Command="{Binding EditCommand}" Padding="10,7" Margin="6,0,0,0" ToolTip="Cortar, recortar a imagem e ajustar o áudio"
-                                                Visibility="{Binding IsScreenshot, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFont}" FontSize="12" VerticalAlignment="Center" />
-                                                <TextBlock Text="Editar" Margin="7,0,0,0" />
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE838;" Width="32" Margin="4,0,0,0" Command="{Binding RevealCommand}" ToolTip="Mostrar na pasta" />
-                                        <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE74D;" Width="32" Margin="2,0,0,0" Command="{Binding DeleteCommand}" ToolTip="Mover para a Lixeira" />
-                                    </Grid>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                        <DataTemplate.Triggers>
-                            <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="PlayOverlay" Property="Opacity" Value="1" />
-                            </Trigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        <Setter TargetName="PlayOverlay" Property="Opacity" Value="1" />
+                                    </Trigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Empty state -->
         <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,80"

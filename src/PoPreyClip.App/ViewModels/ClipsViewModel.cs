@@ -17,10 +17,19 @@ public enum LibraryKind
     Screenshots,
 }
 
+public enum ShareApp
+{
+    Discord,
+    WhatsApp,
+}
+
 public sealed record GameFilter(string? Game, string Label, int Count)
 {
     public string Display => $"{Label}  {Count}";
 }
+
+/// <summary>One row of the clip grid. The grid is a list of rows so that only the rows on screen are created.</summary>
+public sealed record ClipRow(IReadOnlyList<ClipItemViewModel> Items, int Columns);
 
 public sealed class ClipsViewModel : ObservableObject
 {
@@ -33,6 +42,8 @@ public sealed class ClipsViewModel : ObservableObject
     private string _search = "";
     private LibraryKind _kind = LibraryKind.All;
     private bool _isEmpty = true;
+    private int _columns = 1;
+    private List<ClipItemViewModel> _visible = [];
     private string _summary = "";
 
     public ClipsViewModel(ConfigStore store)
@@ -56,7 +67,21 @@ public sealed class ClipsViewModel : ObservableObject
         Refresh();
     }
 
-    public ObservableCollection<ClipItemViewModel> Clips { get; } = [];
+    /// <summary>The filtered clips split into rows of <see cref="Columns"/> cards.</summary>
+    public ObservableCollection<ClipRow> Rows { get; } = [];
+
+    /// <summary>How many cards fit side by side; set by the view when its width changes.</summary>
+    public int Columns
+    {
+        get => _columns;
+        set
+        {
+            if (SetProperty(ref _columns, Math.Max(1, value)))
+            {
+                BuildRows();
+            }
+        }
+    }
 
     public ObservableCollection<GameFilter> Filters { get; } = [];
 
@@ -213,6 +238,63 @@ public sealed class ClipsViewModel : ObservableObject
         ClipLibrary.OpenFolder(Directory.Exists(folder) ? folder : _store.Current.ClipFolder);
     }
 
+    /// <summary>A short message for the corner notice; true when it is a warning.</summary>
+    public event Action<string, bool>? Notice;
+
+    /// <summary>Copies the file so the player can paste it in any program (Ctrl+V).</summary>
+    internal void Copy(ClipItemViewModel clip)
+    {
+        if (ClipSharing.CopyToClipboard(clip.Info))
+        {
+            Notice?.Invoke(clip.IsScreenshot
+                ? "Captura copiada. Cole com Ctrl+V onde quiser."
+                : "Clipe copiado. Cole com Ctrl+V no Discord, WhatsApp ou outro programa.", false);
+        }
+        else
+        {
+            Notice?.Invoke("Não foi possível copiar. Tente de novo.", true);
+        }
+    }
+
+    /// <summary>
+    /// Copies the file and opens the app, so the player only picks the conversation and pastes.
+    /// Without the app installed, opens its site instead.
+    /// </summary>
+    internal void SendTo(ClipItemViewModel clip, ShareApp app)
+    {
+        if (!ClipSharing.CopyToClipboard(clip.Info))
+        {
+            Notice?.Invoke("Não foi possível copiar. Tente de novo.", true);
+            return;
+        }
+
+        var (name, scheme, appLink, site) = app == ShareApp.Discord
+            ? ("Discord", "discord", "discord://-/channels/@me", "https://discord.com/app")
+            : ("WhatsApp", "whatsapp", "whatsapp://", "https://web.whatsapp.com/");
+        var opened = ClipSharing.IsAppInstalled(scheme) ? ClipSharing.Open(appLink) : ClipSharing.Open(site);
+        var what = clip.IsScreenshot ? "Captura copiada" : "Clipe copiado";
+        if (app == ShareApp.Discord && !clip.IsScreenshot && clip.Info.SizeBytes > ClipSharing.DiscordFreeLimitBytes)
+        {
+            Notice?.Invoke($"{what}, mas tem {clip.SizeText}: o Discord sem Nitro aceita até 20 MB. " +
+                           "Corte no editor ou envie pelo WhatsApp.", true);
+        }
+        else
+        {
+            Notice?.Invoke(opened
+                ? $"{what}. No {name}, escolha a conversa e cole com Ctrl+V."
+                : $"{what}. Abra o {name}, escolha a conversa e cole com Ctrl+V.", false);
+        }
+    }
+
+    /// <summary>Opens the Windows Share window for the file.</summary>
+    internal void Share(ClipItemViewModel clip)
+    {
+        if (Application.Current?.MainWindow is not { } window || !ClipSharing.ShowShareWindow(window, clip.Info))
+        {
+            Notice?.Invoke("Não foi possível abrir a janela Compartilhar do Windows.", true);
+        }
+    }
+
     /// <summary>Raised after the editor saves a clip, with the saved file and whether it replaced the original.</summary>
     public event Action<string, bool>? EditSaved;
 
@@ -240,13 +322,18 @@ public sealed class ClipsViewModel : ObservableObject
                                      c.DateText.Contains(term, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        Clips.Clear();
-        foreach (var clip in query)
-        {
-            Clips.Add(clip);
-        }
+        _visible = query.ToList();
+        IsEmpty = _visible.Count == 0;
+        BuildRows();
+    }
 
-        IsEmpty = Clips.Count == 0;
+    private void BuildRows()
+    {
+        Rows.Clear();
+        for (var i = 0; i < _visible.Count; i += _columns)
+        {
+            Rows.Add(new ClipRow(_visible.Skip(i).Take(_columns).ToList(), _columns));
+        }
     }
 
     private void OpenSelectedGameFolder()
@@ -297,7 +384,7 @@ public sealed class ClipsViewModel : ObservableObject
 public sealed class ClipItemViewModel : ObservableObject
 {
     private readonly ClipsViewModel _owner;
-    private BitmapImage? _thumbnail;
+    private BitmapSource? _thumbnail;
     private string _durationText = "";
     private bool _loadStarted;
 
@@ -309,6 +396,10 @@ public sealed class ClipItemViewModel : ObservableObject
         RevealCommand = new RelayCommand(() => ClipLibrary.RevealInExplorer(Path));
         DeleteCommand = new RelayCommand(() => _owner.Remove(this));
         EditCommand = new RelayCommand(() => _owner.Edit(this), () => !IsScreenshot);
+        CopyCommand = new RelayCommand(() => _owner.Copy(this));
+        SendToDiscordCommand = new RelayCommand(() => _owner.SendTo(this, ShareApp.Discord));
+        SendToWhatsAppCommand = new RelayCommand(() => _owner.SendTo(this, ShareApp.WhatsApp));
+        ShareCommand = new RelayCommand(() => _owner.Share(this));
     }
 
     public ClipInfo Info { get; }
@@ -339,8 +430,16 @@ public sealed class ClipItemViewModel : ObservableObject
 
     public ICommand EditCommand { get; }
 
+    public ICommand CopyCommand { get; }
+
+    public ICommand SendToDiscordCommand { get; }
+
+    public ICommand SendToWhatsAppCommand { get; }
+
+    public ICommand ShareCommand { get; }
+
     /// <summary>Loaded lazily the first time the card is shown.</summary>
-    public BitmapImage? Thumbnail
+    public BitmapSource? Thumbnail
     {
         get
         {
@@ -379,35 +478,101 @@ public sealed class ClipItemViewModel : ObservableObject
     private async Task LoadAsync()
     {
         var config = _owner.Config;
-        var duration = await ClipLibrary.GetDurationAsync(config, Info);
-        if (duration is { } seconds)
+        var info = Info;
+
+        // Everything slow (ffprobe, ffmpeg, decoding the image) runs off the UI thread, a few clips at a time,
+        // so opening the Clips page never freezes the window.
+        var (seconds, image) = await Task.Run(async () =>
         {
-            var span = TimeSpan.FromSeconds(Math.Round(seconds));
+            var duration = await ClipLibrary.GetDurationAsync(config, info);
+            var thumbnailPath = await ClipLibrary.GetThumbnailAsync(config, info);
+            if (thumbnailPath is null)
+            {
+                return (duration, (BitmapSource?)null);
+            }
+
+            await DecodeSlots.WaitAsync();
+            try
+            {
+                return (duration, LoadThumbnail(info, thumbnailPath));
+            }
+            finally
+            {
+                DecodeSlots.Release();
+            }
+        });
+
+        if (seconds is { } value)
+        {
+            var span = TimeSpan.FromSeconds(Math.Round(value));
             _durationText = span.TotalHours >= 1 ? span.ToString(@"h\:mm\:ss") : span.ToString(@"m\:ss");
             OnPropertyChanged(nameof(DurationText));
         }
 
-        var thumbnailPath = await ClipLibrary.GetThumbnailAsync(config, Info);
-        if (thumbnailPath is null)
+        if (image is not null)
         {
-            return;
+            _thumbnail = image;
+            OnPropertyChanged(nameof(Thumbnail));
         }
+    }
 
+    private static readonly SemaphoreSlim DecodeSlots = new(2, 2);
+
+    /// <summary>
+    /// Decodes the thumbnail at 480 px. A full-size screenshot (several MB) is decoded only once: a small JPEG copy
+    /// is saved in the thumbnail cache and used from then on.
+    /// </summary>
+    private static BitmapSource? LoadThumbnail(ClipInfo info, string path)
+    {
         try
         {
             var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;
+            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             image.DecodePixelWidth = 480;
-            image.UriSource = new Uri(thumbnailPath);
+            image.UriSource = new Uri(path);
             image.EndInit();
             image.Freeze();
-            _thumbnail = image;
-            OnPropertyChanged(nameof(Thumbnail));
+
+            if (info.IsScreenshot && string.Equals(path, info.Path, StringComparison.OrdinalIgnoreCase))
+            {
+                SaveScreenshotThumbnail(image, ClipLibrary.ThumbnailCachePath(info));
+            }
+
+            return image;
         }
-        catch (Exception ex) when (ex is IOException or NotSupportedException)
+        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
-            // Leave the placeholder.
+            return null; // Leave the placeholder.
+        }
+    }
+
+    private static void SaveScreenshotThumbnail(BitmapSource image, string target)
+    {
+        var temporary = target + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
+            var encoder = new JpegBitmapEncoder { QualityLevel = 85 };
+            encoder.Frames.Add(BitmapFrame.Create(image));
+            using (var stream = File.Create(temporary))
+            {
+                encoder.Save(stream);
+            }
+
+            File.Move(temporary, target, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException)
+        {
+            // Not cached; decoded from the screenshot again next time.
+            try
+            {
+                File.Delete(temporary);
+            }
+            catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
+            {
+            }
         }
     }
 }

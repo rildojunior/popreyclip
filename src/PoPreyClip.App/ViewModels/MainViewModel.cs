@@ -46,6 +46,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _errorMessage;
     private string? _toastMessage;
     private string? _toastPath;
+    private bool _isToastWarning;
     private string _tracksText = "";
 
     public MainViewModel(ConfigStore store, RecordingSession session, HotkeyManager hotkeys, Action exitForUpdate)
@@ -62,6 +63,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ShowNotice(overwrote ? "Clipe editado e substituído" : "Clipe editado salvo como novo vídeo");
             Clips.ScheduleRefresh();
         };
+        Clips.Notice += ShowNotice;
         Clips.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ClipsViewModel.Summary))
@@ -205,10 +207,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public UpdatesViewModel Updates { get; }
 
-    /// <summary>Shows a short notice in the corner (no clip actions).</summary>
-    public void ShowNotice(string message)
+    /// <summary>Shows a short notice in the corner (no clip actions); a warning gets a yellow icon.</summary>
+    public void ShowNotice(string message) => ShowNotice(message, false);
+
+    public void ShowNotice(string message, bool warning)
     {
         _toastPath = null;
+        IsToastWarning = warning;
         ToastMessage = message;
         _toastTimer.Stop();
         _toastTimer.Start();
@@ -478,6 +483,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public bool IsToastVisible => ToastMessage is not null;
 
+    /// <summary>The notice is a warning (yellow icon) instead of a success.</summary>
+    public bool IsToastWarning
+    {
+        get => _isToastWarning;
+        private set => SetProperty(ref _isToastWarning, value);
+    }
+
     public bool HasToastActions => _toastPath is not null;
 
     public string ConfigFolderPath => _store.Current.ClipFolder;
@@ -555,6 +567,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void OnClipSaved(ClipSavedInfo info)
     {
         _toastPath = info.Path;
+        IsToastWarning = false;
         ToastMessage = $"Clipe de {info.Game} salvo";
         _toastTimer.Stop();
         _toastTimer.Start();
@@ -576,6 +589,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         _toastPath = info.Path;
+        IsToastWarning = false;
         ToastMessage = $"Captura de tela de {info.Game} salva";
         _toastTimer.Stop();
         _toastTimer.Start();
@@ -583,7 +597,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ScreenshotSaved?.Invoke(info);
     }
 
-    /// <summary>Puts the screenshot on the clipboard so it can be pasted straight into Discord, like Medal does.</summary>
+    /// <summary>Puts the screenshot on the clipboard so it can be pasted straight into Discord.</summary>
     private static void CopyImageToClipboard(string path)
     {
         try

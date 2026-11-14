@@ -217,10 +217,34 @@
                     <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="Black" />
                 </Border.Effect>
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource SuccessSoftBrush}">
-                        <TextBlock Text="&#xE73E;" Style="{StaticResource IconText}" Foreground="{StaticResource SuccessBrush}" FontSize="14" />
+                    <Border Width="32" Height="32" CornerRadius="16" VerticalAlignment="Center">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsToastWarning}" Value="True">
+                                        <Setter Property="Background" Value="#24F59E0B" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock FontSize="14">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                    <Setter Property="Text" Value="&#xE73E;" />
+                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsToastWarning}" Value="True">
+                                            <Setter Property="Text" Value="&#xE7BA;" />
+                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Border>
-                    <TextBlock Text="{Binding ToastMessage}" Margin="12,0,18,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding ToastMessage}" Margin="12,0,18,0" VerticalAlignment="Center" FontWeight="SemiBold"
+                               TextWrapping="Wrap" MaxWidth="420" />
                     <Button Content="Assistir" Command="{Binding ToastOpenCommand}" Style="{StaticResource PrimaryButton}" Padding="12,6"
                             Visibility="{Binding HasToastActions, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="Mostrar na pasta" Command="{Binding ToastRevealCommand}" Margin="8,0,0,0" Padding="12,6"

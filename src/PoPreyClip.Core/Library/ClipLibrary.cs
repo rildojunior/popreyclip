@@ -17,6 +17,8 @@ public static class ClipLibrary
 
     private static readonly SemaphoreSlim ThumbnailSlots = new(2, 2);
 
+    private static readonly SemaphoreSlim ProbeSlots = new(3, 3);
+
     /// <summary>&lt;root&gt;\PoPrey Game Capture, with one folder per game inside.</summary>
     public static string CaptureRoot(AppConfig config) => System.IO.Path.Combine(config.ClipFolder, ClipPathBuilder.RootSubfolder);
 
@@ -149,19 +151,28 @@ public static class ClipLibrary
         }
     }
 
-    /// <summary>Returns a cached JPEG thumbnail, creating it with ffmpeg when needed. Null on failure.</summary>
+    /// <summary>
+    /// Path of the cached thumbnail of a clip or screenshot (it may not exist yet). The name changes when the file
+    /// changes, so an edited clip gets a new thumbnail.
+    /// </summary>
+    public static string ThumbnailCachePath(ClipInfo clip) => System.IO.Path.Combine(ThumbnailDirectory, CacheKey(clip) + ".jpg");
+
+    /// <summary>
+    /// Returns a cached JPEG thumbnail, creating it with ffmpeg when needed. Null on failure.
+    /// For a screenshot it returns the small cached copy when it exists, otherwise the screenshot itself
+    /// (the app makes the small copy, see <see cref="ThumbnailCachePath"/>).
+    /// </summary>
     public static async Task<string?> GetThumbnailAsync(AppConfig config, ClipInfo clip)
     {
-        if (clip.IsScreenshot)
-        {
-            return clip.Path;
-        }
-
-        var key = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes($"{clip.Path}|{clip.SizeBytes}|{clip.Created.Ticks}")));
-        var target = System.IO.Path.Combine(ThumbnailDirectory, key + ".jpg");
+        var target = ThumbnailCachePath(clip);
         if (File.Exists(target))
         {
             return target;
+        }
+
+        if (clip.IsScreenshot)
+        {
+            return clip.Path;
         }
 
         await ThumbnailSlots.WaitAsync();
@@ -190,6 +201,7 @@ public static class ClipLibrary
         }
     }
 
+    /// <summary>Clip length in seconds, read once with ffprobe and then kept next to the thumbnails.</summary>
     public static async Task<double?> GetDurationAsync(AppConfig config, ClipInfo clip)
     {
         if (clip.IsScreenshot)
@@ -197,16 +209,54 @@ public static class ClipLibrary
             return null;
         }
 
+        var cache = System.IO.Path.Combine(ThumbnailDirectory, CacheKey(clip) + ".dur");
+        try
+        {
+            if (File.Exists(cache) &&
+                double.TryParse(await File.ReadAllTextAsync(cache), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var cached))
+            {
+                return cached > 0 ? cached : null;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Read it again with ffprobe.
+        }
+
+        await ProbeSlots.WaitAsync();
         try
         {
             var seconds = await Ffmpeg.ProbeDurationAsync(config.FfprobeExe, clip.Path);
-            return seconds > 0 ? seconds : null;
+            if (seconds <= 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(ThumbnailDirectory);
+                await File.WriteAllTextAsync(cache, Ffmpeg.Format(seconds));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Not cached; read again next time.
+            }
+
+            return seconds;
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             return null;
         }
+        finally
+        {
+            ProbeSlots.Release();
+        }
     }
+
+    private static string CacheKey(ClipInfo clip) =>
+        Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes($"{clip.Path}|{clip.SizeBytes}|{clip.Created.Ticks}")));
 
     /// <summary>Opens the clip in the default video player.</summary>
     public static void Play(string path) => Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });

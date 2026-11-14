@@ -40,7 +40,8 @@ Uma pasta para cada jogo, áudio separado por aplicativo e capturas de tela com 
 - 🎧 **Áudio separado por aplicativo:** jogo, microfone, Discord e qualquer outro programa viram faixas separadas no clipe, cada uma com seu volume.
 - 🎚️ **Mixer de áudio:** volume de 0 a 200%, reforço de até +30 dB para microfones baixos e um limitador que evita distorção.
 - 📸 **Captura de tela com F12:** imagem PNG salva em `PoPrey Game Capture\<Nome do Jogo>\Screenshots\` e copiada para a área de transferência, pronta para colar no Discord.
-- 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, abrir a pasta ou excluir.
+- 🗂️ **Biblioteca de clipes:** miniaturas, duração, filtro por jogo, busca e botões para assistir, editar, compartilhar ou excluir.
+- 📤 **Compartilhar e copiar:** copie um clipe ou captura para colar com **Ctrl+V** em qualquer programa, envie para o Discord ou o WhatsApp, use a janela Compartilhar do Windows ou arraste o cartão para outro programa. Nenhum arquivo novo é criado.
 - ✂️ **Editor de clipes:** corte o começo e o fim, recorte a imagem (vertical 9:16 para Shorts, Reels e TikTok, quadrado, livre...), ajuste o volume de cada faixa ouvindo na hora e junte o áudio numa faixa só. Salve como vídeo novo ou substitua o original. O editor só existe enquanto está aberto: fechado, não gasta nada.
 - 🎙️ **Comando de voz:** diga **"Oni, clipa isso"** para salvar um clipe sem tirar a mão do jogo, mesmo com o jogo na frente. Entende qualquer palavra, então o nome do assistente e os comandos podem ser gírias ou nomes inventados. É reconhecido no seu PC, sem internet, e vem desligado.
 - ⌨️ **Atalhos configuráveis:** funcionam dentro do jogo, mesmo com Shift, Ctrl ou Alt segurados, e podem ser trocados nas configurações.
@@ -129,7 +130,20 @@ O reconhecimento é feito pelo [Whisper](https://github.com/ggml-org/whisper.cpp
 
 ### Tirar uma captura de tela
 
-Aperte **F12**. A imagem vai para `C:\PoPreyClip\Screenshots\<Nome do Jogo>\` e também fica copiada, pronta para colar com **Ctrl+V**.
+Aperte **F12**. A imagem vai para `PoPrey Game Capture\<Nome do Jogo>\Screenshots\` e também fica copiada, pronta para colar com **Ctrl+V**.
+
+### Compartilhar ou copiar um clipe
+
+Na tela **Clipes**, clique no botão de compartilhar do cartão (ao lado da lixeira) ou clique com o botão direito no cartão:
+
+- **Copiar** (ou **Ctrl+C** com o mouse sobre o cartão): copia o arquivo, como no Explorador de Arquivos. Cole com **Ctrl+V** no Discord, no WhatsApp, numa pasta ou em outro programa. Nas capturas de tela, a imagem também vai junto, para colar até no Paint ou num site.
+- **Enviar para o Discord** ou **Enviar para o WhatsApp:** copia o arquivo e abre o app. Escolha a conversa e cole com **Ctrl+V**. Sem o app instalado, abre o site.
+- **Mais opções…:** abre a janela **Compartilhar** do Windows (WhatsApp, e-mail, Compartilhamento por Proximidade e outros apps).
+- **Mostrar na pasta:** abre a pasta com o arquivo selecionado.
+
+Também dá para **arrastar o cartão** direto para a janela do Discord, do WhatsApp ou de uma pasta.
+
+> O Discord sem Nitro aceita arquivos de até 20 MB. Um clipe de 1 minuto em 1080p passa disso: o PoPreyClip avisa quando o clipe é grande. Corte-o no editor, envie pelo WhatsApp ou use o Nitro.
 
 ### Editar um clipe
 
@@ -224,6 +238,12 @@ O PoPreyClip baixa o FFmpeg sozinho na primeira vez que abre. Se aparecer essa m
 <summary><b>O jogo não foi detectado e o clipe foi para "Unknown Game"</b></summary>
 
 O PoPreyClip reconhece jogos em tela cheia ou janela sem borda. Se o seu jogo não for detectado, adicione-o em **Configurações → Jogos → Jogos e apps vigiados**: com o jogo aberto, escolha a janela dele na lista, confira o nome e clique em **Vigiar**. Daí em diante ele é reconhecido assim que abrir.
+</details>
+
+<details>
+<summary><b>O Discord não aceitou o clipe</b></summary>
+
+Sem Nitro, o Discord aceita arquivos de até 20 MB, e um clipe de 1 minuto em 1080p costuma ter de 60 a 130 MB. Corte o clipe no **editor** (só a parte que importa), escolha uma qualidade menor em **Configurações → Captura → Vídeo** ou envie pelo WhatsApp.
 </details>
 
 <details>
@@ -332,4 +352,4 @@ As configurações ficam em `%APPDATA%\PoPreyClip\config.json` e os logs em `%LO
 
 Distribuído sob a licença [MIT](LICENSE). Você pode usar, modificar e compartilhar à vontade.
 
-O PoPreyClip usa o [FFmpeg](https://ffmpeg.org/), baixado pelo próprio app a partir dos [builds do Gyan](https://github.com/GyanD/codexffmpeg), que tem licença própria. Este projeto não tem relação com o Medal, a NVIDIA ou os jogos citados. Os nomes de jogos aparecem só como exemplo.
+O PoPreyClip usa o [FFmpeg](https://ffmpeg.org/), baixado pelo próprio app a partir dos [builds do Gyan](https://github.com/GyanD/codexffmpeg), que tem licença própria. Este projeto não tem relação com a NVIDIA ou os jogos citados. Os nomes de jogos aparecem só como exemplo.
