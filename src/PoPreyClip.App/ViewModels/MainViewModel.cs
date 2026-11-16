@@ -541,7 +541,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public async Task SaveClipAsync() => await _session.SaveClipAsync();
 
-    public async Task SaveScreenshotAsync() => await _session.SaveScreenshotAsync();
+    /// <summary>Screenshot asked from inside the app: the app's windows step aside so the game is captured.</summary>
+    public async Task SaveScreenshotAsync() => await ScreenshotWindowHider.RunHiddenAsync(_session.SaveScreenshotAsync);
 
     private string? SetHotkey(string name, string text)
     {

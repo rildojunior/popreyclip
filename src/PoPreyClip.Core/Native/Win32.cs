@@ -128,6 +128,34 @@ internal static class Win32
     [DllImport("kernel32.dll")]
     public static extern uint GetCurrentThreadId();
 
+    /// <summary>
+    /// Keeps the calling thread at full speed when Windows slows down background apps (power throttling, also known
+    /// as efficiency mode). Meant for the threads that answer key presses: they run only when a key moves, so this costs
+    /// nothing while idle. Does nothing on Windows versions without it.
+    /// </summary>
+    public static void KeepThreadResponsive()
+    {
+        var state = new ThreadPowerThrottlingState { Version = 1, ControlMask = 0x1, StateMask = 0 };
+        SetThreadInformation(GetCurrentThread(), ThreadPowerThrottling, ref state, (uint)Marshal.SizeOf<ThreadPowerThrottlingState>());
+    }
+
+    private const int ThreadPowerThrottling = 3;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ThreadPowerThrottlingState
+    {
+        public uint Version;
+        public uint ControlMask;
+        public uint StateMask;
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentThread();
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetThreadInformation(IntPtr thread, int informationClass, ref ThreadPowerThrottlingState information, uint size);
+
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
 

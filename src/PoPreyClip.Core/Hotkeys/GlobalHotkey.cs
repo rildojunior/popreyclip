@@ -90,37 +90,40 @@ public readonly record struct HotkeyBinding(uint Modifiers, uint VirtualKey, str
 }
 
 /// <summary>
-/// System-wide hotkey on a dedicated message-loop thread. It first asks Windows to reserve the key
-/// (RegisterHotKey). If another program already reserved it (error 1409, common for F12), it falls back to
-/// a shared low-level keyboard hook: the key still reaches the other
-/// program and PoPreyClip reacts too.
-/// The hook is also installed alongside RegisterHotKey, because Windows only fires a reserved hotkey when
-/// the held modifiers match exactly: pressing F9 while running with Shift (or holding Alt) would be ignored. The hook
-/// accepts those presses too (see <see cref="HotkeyBinding.AcceptsLoosely"/>) without taking the
-/// combination away from other programs.
+/// System-wide hotkey. It first asks Windows to reserve the key (RegisterHotKey) on a dedicated message-loop thread.
+/// Presses with extra Shift, Ctrl or Alt held (running, crouching, push-to-talk) do not fire a reserved hotkey, so
+/// they come from the shared <see cref="RawKeyboard"/> listener, which only receives a copy of each key after the
+/// fact and never delays it (see <see cref="HotkeyBinding.AcceptsLoosely"/>).
+/// F12 alone cannot be reserved (Windows keeps it for debuggers) but is still delivered to every program, so it is
+/// shared through the listener: one press also reaches Steam, whose overlay reads F12 inside the game for its own
+/// screenshot. Any other key that cannot be reserved belongs to another program, which swallows it before Raw Input
+/// sees it, so the user is told to pick another key.
+/// No low-level keyboard hook: Windows silently removes a hook that answers late (a garbage collection or a PC busy
+/// with a game is enough), which made F12 stop working during long sessions.
 /// </summary>
 public sealed class GlobalHotkey : IDisposable
 {
     private const int HotkeyId = 0x5150;
     private const int ErrorHotkeyAlreadyRegistered = 1409;
-    private const int WhKeyboardLl = 13;
-    private const int WmKeyDown = 0x0100;
-    private const int WmKeyUp = 0x0101;
-    private const int WmSysKeyDown = 0x0104;
-    private const int WmSysKeyUp = 0x0105;
+    private const uint VkF12 = 0x7B;
+
+    /// <summary>
+    /// Longer than the slowest key repeat Windows allows (1 s before the first repeat, then at most ~400 ms apart).
+    /// A key-down that arrives later than this after the previous one is a new press, even if the key-up was lost.
+    /// </summary>
+    private const uint NewPressGapMs = 1_200;
 
     private readonly Thread _thread;
     private readonly ManualResetEventSlim _ready = new();
     private readonly HotkeyBinding _binding;
     private readonly Func<uint, uint, bool>? _isTakenElsewhere;
-    private LowLevelKeyboardProc? _hookProc;
-    private IntPtr _hook;
+    private readonly Action<RawKeyEvent> _onRawKey;
+    private bool _listening;
     private bool _keyHeld;
+    private uint _lastKeyDownTime;
     private bool _registered;
     private uint _threadId;
     private string? _error;
-
-    private delegate IntPtr LowLevelKeyboardProc(int code, IntPtr wParam, IntPtr lParam);
 
     /// <param name="isTakenElsewhere">
     /// Receives a virtual key and the held modifiers; returns true when another PoPreyClip hotkey owns that exact
@@ -131,6 +134,7 @@ public sealed class GlobalHotkey : IDisposable
     {
         _binding = binding;
         _isTakenElsewhere = isTakenElsewhere;
+        _onRawKey = key => OnKey(key.VirtualKey, key.IsDown, key.Time);
         OnPressed = onPressed;
         _thread = new Thread(Run)
         {
@@ -147,8 +151,11 @@ public sealed class GlobalHotkey : IDisposable
 
     public Action OnPressed { get; }
 
-    /// <summary>True when the key is shared with another program through the keyboard hook.</summary>
-    public bool IsShared => !_registered && _hook != IntPtr.Zero;
+    /// <summary>True for F12, which PoPreyClip shares with other programs instead of reserving it.</summary>
+    public bool IsShared => !_registered && _listening;
+
+    /// <summary>F12 without modifiers: refused by RegisterHotKey because of the debugger, yet delivered to everyone.</summary>
+    private bool IsKeptByWindows => _binding.VirtualKey == VkF12 && _binding.Modifiers == 0;
 
     private void Run()
     {
@@ -158,16 +165,20 @@ public sealed class GlobalHotkey : IDisposable
         if (!registered)
         {
             var error = Marshal.GetLastWin32Error();
-            if (error != ErrorHotkeyAlreadyRegistered || !InstallHook())
+            if (error == ErrorHotkeyAlreadyRegistered && IsKeptByWindows && Listen() is null)
             {
-                _error = $"Não foi possível usar o atalho {_binding.Text} (erro {error}).";
+                Log.Info($"O atalho {_binding.Text} é compartilhado com outros programas (como a captura de tela da Steam).");
+            }
+            else
+            {
+                _error = error == ErrorHotkeyAlreadyRegistered
+                    ? $"O atalho {_binding.Text} já é usado por outro programa. Escolha outra tecla."
+                    : $"Não foi possível usar o atalho {_binding.Text} (erro {error}).";
                 _ready.Set();
                 return;
             }
-
-            Log.Info($"O atalho {_binding.Text} já é usado por outro programa. O PoPreyClip vai compartilhar a tecla com ele.");
         }
-        else if (!InstallHook())
+        else if (Listen() is not null)
         {
             // The exact combination still works through RegisterHotKey.
             Log.Warn($"O atalho {_binding.Text} só vai funcionar sem outras teclas como Shift, Ctrl ou Alt seguradas.");
@@ -191,47 +202,48 @@ public sealed class GlobalHotkey : IDisposable
                 Win32.UnregisterHotKey(IntPtr.Zero, HotkeyId);
             }
 
-            if (_hook != IntPtr.Zero)
+            if (_listening)
             {
-                UnhookWindowsHookEx(_hook);
+                RawKeyboard.Unsubscribe(_onRawKey);
             }
         }
     }
 
-    private bool InstallHook()
+    private string? Listen()
     {
-        _hookProc = HookCallback;
-        _hook = SetWindowsHookExW(WhKeyboardLl, _hookProc, GetModuleHandleW(null), 0);
-        return _hook != IntPtr.Zero;
-    }
-
-    /// <summary>Runs on the hotkey thread for every key event; must return quickly.</summary>
-    private IntPtr HookCallback(int code, IntPtr wParam, IntPtr lParam)
-    {
-        if (code >= 0)
+        var error = RawKeyboard.Subscribe(_onRawKey);
+        _listening = error is null;
+        if (error is not null)
         {
-            var virtualKey = (uint)Marshal.ReadInt32(lParam);
-            var message = (int)wParam;
-            if (virtualKey == _binding.VirtualKey)
-            {
-                if (message is WmKeyDown or WmSysKeyDown)
-                {
-                    // Ignore auto-repeat while the key is held down.
-                    if (!_keyHeld && ShouldFire(CurrentModifiers()))
-                    {
-                        ThreadPool.QueueUserWorkItem(_ => OnPressed());
-                    }
-
-                    _keyHeld = true;
-                }
-                else if (message is WmKeyUp or WmSysKeyUp)
-                {
-                    _keyHeld = false;
-                }
-            }
+            Log.Warn(error);
         }
 
-        return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+        return error;
+    }
+
+    /// <summary>Called on the shared keyboard thread for every key going down or up; must return quickly.</summary>
+    private void OnKey(uint virtualKey, bool isDown, uint time)
+    {
+        if (virtualKey != _binding.VirtualKey)
+        {
+            return;
+        }
+
+        if (!isDown)
+        {
+            _keyHeld = false;
+            return;
+        }
+
+        // Ignore auto-repeat while the key is held down. A long gap means the key-up was lost (for example the key
+        // was released on another desktop), and that must not block the key forever.
+        var isNewPress = !_keyHeld || time - _lastKeyDownTime > NewPressGapMs;
+        _keyHeld = true;
+        _lastKeyDownTime = time;
+        if (isNewPress && ShouldFire(CurrentModifiers()))
+        {
+            ThreadPool.QueueUserWorkItem(_ => OnPressed());
+        }
     }
 
     private bool ShouldFire(uint heldModifiers)
@@ -247,7 +259,7 @@ public sealed class GlobalHotkey : IDisposable
             return false;
         }
 
-        // Logging touches the disk, so it stays off the hook thread.
+        // Logging touches the disk, so it stays off the keyboard thread.
         ThreadPool.QueueUserWorkItem(_ => Log.Debug($"Atalho {_binding.Text} reconhecido com Shift, Ctrl ou Alt segurado."));
         return true;
     }
@@ -290,19 +302,6 @@ public sealed class GlobalHotkey : IDisposable
         _ready.Dispose();
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr SetWindowsHookExW(int hookId, LowLevelKeyboardProc callback, IntPtr module, uint threadId);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnhookWindowsHookEx(IntPtr hook);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
-
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int virtualKey);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr GetModuleHandleW(string? moduleName);
 }

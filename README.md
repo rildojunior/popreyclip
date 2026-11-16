@@ -249,7 +249,9 @@ Sem Nitro, o Discord aceita arquivos de até 20 MB, e um clipe de 1 minuto em 10
 <details>
 <summary><b>O atalho não funciona</b></summary>
 
-Outro programa pode estar usando a mesma tecla, como o Steam, o Discord ou o overlay da NVIDIA. Troque o atalho em **Configurações → Atalhos e voz → Teclas de atalho**.
+Outro programa pode estar usando a mesma tecla, como o Discord ou o overlay da NVIDIA. Nesse caso aparece o aviso "já é usado por outro programa" embaixo do atalho, em **Configurações → Atalhos e voz → Teclas de atalho**. Escolha outra tecla ali.
+
+O **F12** é a exceção: ele é dividido com outros programas. Se a Steam também usa o F12 para captura de tela, um aperto gera o print nos dois.
 
 Segurar Shift, Ctrl ou Alt junto (para correr, agachar ou falar no rádio, por exemplo) não atrapalha. A tecla Windows sim, porque o Windows usa essas combinações para outras coisas. Se outro atalho do PoPreyClip usar exatamente a combinação apertada, vale o dele: com **F9** salvando o clipe e **Alt+Shift+F9** ativando a captura de clipes, Alt+F9 salva o clipe e Alt+Shift+F9 ativa ou desativa a captura.
 </details>
